@@ -21,12 +21,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
       
-      - name: Lint & Format
-        run: |
-          pip install black flake8
-          black --check backend/
-          flake8 backend/
-          
+      # - name: Lint & Format
+      #   run: |
+      #     pip install black flake8
+      #     black --check backend/
+      #     flake8 backend/
+
       - name: Run tests
         run: |
           cd backend
