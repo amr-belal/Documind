@@ -1,3 +1,8 @@
-# fastapi
-# pydantic
-# uvicorn
+fastapi
+pydantic
+uvicorn
+pytest
+pytest-asyncio
+minio
+sqlalchemy
+psycopg2-binary

@@ -10,7 +10,6 @@ class FileSchema(BaseModel):
     file_name :str = Field(..., description="Name of the file")
     file_size :int = Field(..., description="Size of the file in bytes")
     file_path :str = Field(..., description="Path where the file is stored on the server")
-    
     file_id :str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the file")
     upload_time :datetime = Field(default_factory=datetime.now, description="Timestamp when the file was uploaded")
     source :SourceType = Field(..., description="Source of the file, e.g., 'user_upload' or 'email_attachment'")
