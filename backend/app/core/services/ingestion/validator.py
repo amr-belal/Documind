@@ -1,5 +1,5 @@
-from core.enums.file_type import FileType
-from backend.config import MAX_FILE_SIZE
+from app.core.enums.file_type import FileType
+from config import MAX_FILE_SIZE
 
 class ValidateFile:
     def __init__(self , file):
