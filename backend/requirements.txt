@@ -6,3 +6,5 @@ pytest-asyncio
 minio
 sqlalchemy
 psycopg2-binary
+sqlalchemy
+asyncpg
