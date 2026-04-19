@@ -5,6 +5,10 @@ DocuMind — Production-grade RAG pipeline that goes beyond naive retrieval. Fea
 
 source venv/bin/activate    
 
+uvicorn main:app --reload
+
+
+
 ```
 
 backend/
