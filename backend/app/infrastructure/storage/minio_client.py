@@ -30,3 +30,12 @@ class MinioClient:
 
     def get_file_url(self, object_name: str) -> str:
         return self.client.presigned_get_object(MINIO_BUCKET_NAME, object_name)
+    
+
+    def download_file(self, object_name: str) -> bytes:
+        response = self.client.get_object(MINIO_BUCKET_NAME, object_name)
+        try:
+            return response.read()
+        finally:
+            response.close()
+            response.release_conn()
