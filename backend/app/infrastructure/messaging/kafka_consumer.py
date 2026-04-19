@@ -1,5 +1,5 @@
 from kafka import KafkaConsumer
-from workers.document_tasks import process_document
+from app.workers.document_tasks import process_document
 import config
 import json
 import logging

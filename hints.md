@@ -42,3 +42,27 @@
 *"Migrated from synchronous server-side uploads to Direct-to-Storage Presigned URLs, reducing API server load by 90%."* (ودي جملة بتخطف عين أي Recruiter).
 
 إيه رأيك؟ نكمل في طريقنا ونخلص الـ Client بتاع MinIO جوه الـ FastAPI، ولا حابب نقلب الـ Architecture للـ Presigned URLs من دلوقتي؟ القرار ليك.
+
+
+
+kafka submission tasks: 
+```
+
+INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: connecting to localhost:9092 [('127.0.0.1', 9092) IPv4]
+INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: Connection complete.
+INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=localhost:9092 <connected> [IPv4 ('127.0.0.1', 9092)]>: Closing connection. 
+INFO:app.infrastructure.messaging.kafka_producer:Message sent to topic raw_documents: {'file_id': 'eb85b3e0-591d-48e9-908b-89a8005255d1', 'file_path': 'minio://papers/c6660252-4932-4189-8139-7a8ffb345601.pdf', 'file_name': "Hybrid Search Revamped - Building with Qdrant's Query API.pdf"}
+INFO:     127.0.0.1:51621 - "POST /upload HTTP/1.1" 200 OK
+
+```
+
+{
+    "message": "File uploaded successfully",
+    "file_details": {
+        "id": "88fcb5a8-e609-4372-8526-7b18765a6e1d",
+        "file_name": "Hybrid Search Revamped - Building with Qdrant's Query API.pdf",
+        "status": "pending",
+        "file_path": "minio://papers/4e1a36d7-4384-4bd8-99c4-d52486655fd7.pdf",
+        "created_at": "2026-04-19T23:33:08.146353+00:00"
+    }
+}

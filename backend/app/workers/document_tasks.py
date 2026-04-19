@@ -1,4 +1,4 @@
-from workers.celery_app import celery_app
+from app.workers.celery_app import celery_app
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -11,7 +11,7 @@ def process_document(file_id:str , file_path:str , file_name:str):
     # For demonstration, we'll just log the details.
 
     # Step 1: Download from MinIO
-    # Step 2: Extract text
+    # Step 2: Extract text  
     # Step 3: Chunk
     # Step 4: NER
     # Step 5: Store in Qdrant + Neo4j

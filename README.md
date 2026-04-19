@@ -46,3 +46,16 @@ backend/
   
 
   ```
+
+
+  cd backend
+uvicorn main:app --reload
+
+kafka :
+
+python -m app.workers.consumer_runner
+
+or 
+(prefered)
+PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python -m app.workers.consumer_runner
+
