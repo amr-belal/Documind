@@ -8,12 +8,12 @@ from app.core.services.ingestion.document_service import DocumentService
 from app.infrastructure.storage.minio_client  import MinioClient
 from app.infrastructure.database.database import get_db
 from app.infrastructure.database.models import FileRecord
-
+from app.infrastructure.messaging.kafka_producer import KafkaProducerClient
 router = APIRouter()
 
 
 minio_client = MinioClient()
-
+kafka_producer = KafkaProducerClient()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...), session:AsyncSession = Depends(get_db)):
@@ -32,9 +32,13 @@ async def upload_file(file: UploadFile = File(...), session:AsyncSession = Depen
 
 
     # Read the file content
-    
-    minio_client.upload_file(content, unique_filename)
-    
+    try:
+        minio_client.upload_file(content, unique_filename)
+        
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to upload file")
+
     # Create a FileSchema instance with the uploaded file's details
     file_schema = FileSchema(
         file_type=extension,
@@ -58,6 +62,17 @@ async def upload_file(file: UploadFile = File(...), session:AsyncSession = Depen
     await session.commit()
     await session.refresh(new_record)
 
+    try:
+        message = {
+            "file_id": new_record.id,
+            "file_path": new_record.file_path,
+            "file_name": new_record.file_name
+        }
+
+        kafka_producer.publish("raw_documents", message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to publish message to Kafka")
+    
     
     # Here you would typically process the file_schema, e.g., save it to storage or pass it to an ingestion service.
     
