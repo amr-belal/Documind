@@ -11,3 +11,6 @@ MINIO_BUCKET_NAME = "papers"
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://root:root@localhost:5433/documind")
+
+
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
