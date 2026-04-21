@@ -1,4 +1,4 @@
-# Documind-
+# Documind
 DocuMind — Production-grade RAG pipeline that goes beyond naive retrieval. Features semantic chunking, hybrid search, query transformation, reranking, and real-time evaluation metrics.
 
 
@@ -60,6 +60,7 @@ or
 PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python -m app.workers.consumer_runner
 
 
+```
 
 Terminal 1 — Docker:
 
@@ -82,3 +83,16 @@ Terminal 4 — Kafka Consumer:
 cd /Users/mac/Amrbelal/Documind/Documind/backend
 source venv/bin/activate
 PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python -m app.workers.consumer_runner
+
+
+
+```
+
+
+entity resolution feature 
+
+246 entities → 62 entities ✅ (remove noise entites)
+
+62 entities → 27 unique ✅ (exact match)
+
+27 entities → 25 unique ✅ ( exact -> fuzzy match)
