@@ -5,7 +5,13 @@ from app.core.services.chunking.text_chunker import TextChunker
 from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
 from app.infrastructure.cache.redis_client import RedisCache
 from app.core.services.ner.entity_resolver import EntityResolver
+from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
+from app.core.services.embedding.embedding_service import EmbeddingService
+from qdrant_client.models import PointStruct
 import logging
+import uuid
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -82,3 +88,36 @@ def process_document(file_id:str , file_path:str , file_name:str):
     except Exception as e:
         logger.error(f"Error resolving entities for {file_name}: {e}")
         return
+    
+    # step 7 : Generate embeddings and store in Qdrant
+
+    try:
+        embedding_service = EmbeddingService()
+        qdrant_client = QdrantVectorStore()
+        qdrant_client.create_collection("papers", vector_size=768)  # Assuming 768 is the vector size for the chosen embedding model
+
+        points = []
+
+        for i, chunk in enumerate(chunks):
+            vector = embedding_service.generate_embedding(chunk)
+            points.append(PointStruct(
+                id=str(uuid.uuid4()),
+                vector=vector,
+                payload={
+                    "chunk_text": chunk,
+                    "file_id": file_id,
+                    "file_name": file_name,
+                    "chunk_index": i
+                }
+            ))
+        qdrant_client.add_vectors("papers", points)
+        logger.info(f"Successfully added {len(points)} vectors to Qdrant for {file_name}")
+    except Exception as e:
+        logger.error(f"Error generating embeddings or adding to Qdrant for {file_name}: {e}")
+        return
+    
+    try:
+        redis_cache.delete(cache_key)
+        logger.info(f"Deleted cache key {cache_key} from Redis")
+    except Exception as e:
+        logger.error(f"Error deleting cache key {cache_key}: {e}")
