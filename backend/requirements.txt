@@ -12,3 +12,6 @@ kafka-python-ng
 celery
 redis
 PyMuPDF
+langchain
+langchain-core
+langchain-text-splitters

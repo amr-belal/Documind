@@ -1,5 +1,7 @@
 from app.workers.celery_app import celery_app
 from app.core.services.ingestion.document_service import DocumentService
+from app.core.services.extraction.text_extractor import TextExtractor
+from app.core.services.chunking.text_chunker import TextChunker
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -12,6 +14,7 @@ def process_document(file_id:str , file_path:str , file_name:str):
     logger.info(f"Processing document with ID: {file_id}, Path: {file_path}, Name: {file_name}")
 
     document_service = DocumentService()
+    text_extractor = TextExtractor()
     # Here you would add the actual processing logic, e.g., extracting text, generating embeddings, etc.
     # For demonstration, we'll just log the details.
 
@@ -26,8 +29,17 @@ def process_document(file_id:str , file_path:str , file_name:str):
     try:
         file_content = document_service.download_file(file_path)
         logger.info(f"Successfully downloaded file content for {file_name}")
-        text = document_service.extract_text(file_content)
+        text = text_extractor.extract_text(file_content)
         logger.info(f"Successfully extracted text for {file_name}")
     except Exception as e:
         logger.error(f"Error downloading file {file_name}: {e}")
+        return
+    
+    # Step 3: Chunk the extracted text
+    try:
+        text_chunker = TextChunker()
+        chunks = text_chunker.chunk_text(text)
+        logger.info(f"Successfully chunked text for {file_name} into {len(chunks)} chunks")
+    except Exception as e:
+        logger.error(f"Error chunking text for {file_name}: {e}")
         return

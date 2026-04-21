@@ -5,7 +5,6 @@ This module contains the DocumentService class which provides functionalities fo
 
 
 import uuid
-import fitz  # PyMuPDF
 from app.infrastructure.storage.minio_client import MinioClient
 import logging
 
@@ -38,17 +37,4 @@ class DocumentService:
             logger.error(f"Error occurred while downloading file: {e}")
             return b""
 
-    def extract_text(self, file_content: bytes) -> str:
-        """ Extract text from the given file content.
-        """
-        
-        try:
-            doc = fitz.open(stream=file_content, filetype="pdf")
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            return text
-        except Exception as e:
-            logger.error(f"Error occurred while extracting text: {e}")
-            return ""
-        
+   
