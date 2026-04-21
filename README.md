@@ -59,3 +59,26 @@ or
 (prefered)
 PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python -m app.workers.consumer_runner
 
+
+
+Terminal 1 — Docker:
+
+cd /Users/mac/Amrbelal/Documind/Documind
+docker-compose up -d
+
+Terminal 2 — FastAPI:
+
+cd /Users/mac/Amrbelal/Documind/Documind/backend
+source venv/bin/activate
+uvicorn main:app --reload
+
+Terminal 3 — Celery Worker:
+
+cd /Users/mac/Amrbelal/Documind/Documind/backend
+PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend celery -A app.workers.celery_app worker --loglevel=info
+
+Terminal 4 — Kafka Consumer:
+
+cd /Users/mac/Amrbelal/Documind/Documind/backend
+source venv/bin/activate
+PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python -m app.workers.consumer_runner
