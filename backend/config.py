@@ -24,3 +24,6 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:63
 USEFUL_LABELS = {"ORG", "PRODUCT", "WORK_OF_ART", "FAC", "NORP", "GPE"}
 
 NOISE_LABELS = {"CARDINAL", "DATE", "TIME", "MONEY", "ORDINAL", "QUANTITY"}
+
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

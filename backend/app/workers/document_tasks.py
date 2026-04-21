@@ -3,6 +3,7 @@ from app.core.services.ingestion.document_service import DocumentService
 from app.core.services.extraction.text_extractor import TextExtractor
 from app.core.services.chunking.text_chunker import TextChunker
 from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
+from app.infrastructure.cache.redis_client import RedisCache
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,7 @@ def process_document(file_id:str , file_path:str , file_name:str):
 
     document_service = DocumentService()
     text_extractor = TextExtractor()
+    
     # Here you would add the actual processing logic, e.g., extracting text, generating embeddings, etc.
     # For demonstration, we'll just log the details.
 
@@ -23,7 +25,10 @@ def process_document(file_id:str , file_path:str , file_name:str):
     # Step 2: Extract text  
     # Step 3: Chunk
     # Step 4: NER
-    # Step 5: Store in Qdrant + Neo4j
+    # Step 5: Store raw in Redis  
+    # Step 6: Entity Resolution
+    # Step 7: Store in Qdrant + Neo4j
+    #Step 8: Delete in Redis
 
     
     #step 1,2: Download from MinIO and extract text
@@ -57,4 +62,13 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.info(f"Successfully extracted entities for {file_name}, total entities: {len(all_entities)}")
     except Exception as e:
         logger.error(f"Error extracting entities for {file_name}: {e}", exc_info=True)
+        return
+    
+    # Step 5: Combine chunks with their entities and store in Redis
+    try:
+        redis_cache = RedisCache()
+        cache_key = redis_cache.combine_save_chunks_with_entities(chunks, all_entities)
+        logger.info(f"Stored chunks and entities in Redis with key: {cache_key}")
+    except Exception as e:
+        logger.error(f"Error storing combined chunks and entities in Redis for {file_name}: {e}")
         return
