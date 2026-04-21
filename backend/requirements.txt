@@ -11,3 +11,4 @@ asyncpg
 kafka-python-ng
 celery
 redis
+PyMuPDF
