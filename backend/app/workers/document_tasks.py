@@ -4,6 +4,7 @@ from app.core.services.extraction.text_extractor import TextExtractor
 from app.core.services.chunking.text_chunker import TextChunker
 from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
 from app.infrastructure.cache.redis_client import RedisCache
+from app.core.services.ner.entity_resolver import EntityResolver
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -71,4 +72,13 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.info(f"Stored chunks and entities in Redis with key: {cache_key}")
     except Exception as e:
         logger.error(f"Error storing combined chunks and entities in Redis for {file_name}: {e}")
+        return
+    
+    # Step 6: Entity Resolution (this will be done in a separate task that retrieves the combined data from Redis using the cache key)
+    try:
+        entity_resolver = EntityResolver()
+        resolved_entities = entity_resolver.resolve_entities(cache_key)
+        logger.info(f"Successfully resolved entities for {file_name}, total resolved entities: {len(resolved_entities)}")
+    except Exception as e:
+        logger.error(f"Error resolving entities for {file_name}: {e}")
         return
