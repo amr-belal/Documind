@@ -2,6 +2,7 @@ from app.workers.celery_app import celery_app
 from app.core.services.ingestion.document_service import DocumentService
 from app.core.services.extraction.text_extractor import TextExtractor
 from app.core.services.chunking.text_chunker import TextChunker
+from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -42,4 +43,18 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.info(f"Successfully chunked text for {file_name} into {len(chunks)} chunks")
     except Exception as e:
         logger.error(f"Error chunking text for {file_name}: {e}")
+        return
+    
+    # Step 4: Perform NER on the chunks
+    try:
+        ner_service = SpacyNERService()
+        all_entities = []
+        logger.info(f"Starting NER on {len(chunks)} chunks")
+        for chunk in chunks:
+            entities = ner_service.extract_entities_spacy(chunk)
+            logger.info(f"Chunk entities: {entities}")
+            all_entities.extend(entities)
+        logger.info(f"Successfully extracted entities for {file_name}, total entities: {len(all_entities)}")
+    except Exception as e:
+        logger.error(f"Error extracting entities for {file_name}: {e}", exc_info=True)
         return

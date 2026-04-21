@@ -15,3 +15,5 @@ PyMuPDF
 langchain
 langchain-core
 langchain-text-splitters
+spacy
+scispacy
