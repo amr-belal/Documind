@@ -61,16 +61,12 @@ def process_document(file_id:str , file_path:str , file_name:str):
     
     # Step 4: Perform NER on the chunks
     try:
-        ner_service = OllamaNERService()  # You can switch to SpacyNERService or GlinerNERService as needed
-        all_entities = []
-        logger.info(f"Starting NER on {len(chunks)} chunks")
-        for chunk in chunks:
-            entities = ner_service.extract_entities(chunk)
-            logger.info(f"Chunk entities: {entities}")
-            all_entities.extend(entities)
-        logger.info(f"Successfully extracted entities for {file_name}, total entities: {len(all_entities)}")
+        ner_service = OllamaNERService()
+        logger.info(f"Starting async NER on {len(chunks)} chunks")
+        all_entities = ner_service.extract_entities_all(chunks, batch_size=6)
+        logger.info(f"Total entities: {len(all_entities)}")
     except Exception as e:
-        logger.error(f"Error extracting entities for {file_name}: {e}", exc_info=True)
+        logger.error(f"Error in NER: {e}", exc_info=True)
         return
     
     # Step 5: Combine chunks with their entities and store in Redis

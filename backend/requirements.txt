@@ -20,4 +20,4 @@ scispacy
 rapidfuzz
 qdrant-client
 neo4j
-
+aiohttp

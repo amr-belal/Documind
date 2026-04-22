@@ -80,3 +80,11 @@ INFO:     127.0.0.1:51621 - "POST /upload HTTP/1.1" 200 OK
    (مش extraction من الصفر)
    يبعت: entity text + spaCy label
    يرجع: corrected label
+
+
+
+    NER with ollama increased time from 4 sec to 100 sec so
+    > solution 
+    Batch processing  & Async
+    100 to 54
+
