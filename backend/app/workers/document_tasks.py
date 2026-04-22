@@ -7,6 +7,7 @@ from app.infrastructure.cache.redis_client import RedisCache
 from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
 from app.core.services.embedding.embedding_service import EmbeddingService
+from app.infrastructure.graph.neo4j_client import Neo4jClient
 from qdrant_client.models import PointStruct
 import logging
 import uuid
@@ -121,3 +122,20 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.info(f"Deleted cache key {cache_key} from Redis")
     except Exception as e:
         logger.error(f"Error deleting cache key {cache_key}: {e}")
+
+    try:
+        neo4j = Neo4jClient()
+        for entity in resolved_entities:
+            neo4j.create_entity(
+                entity_name=entity['text'],
+                properties={
+                    "label": entity['label']
+                }
+            )
+        neo4j.close()
+        logger.info(f"Successfully created entities in Neo4j for {file_name}")
+    except Exception as e:
+        logger.error(f"Error creating entities in Neo4j for {file_name}: {e}")
+        return
+    
+    
