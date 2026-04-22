@@ -3,10 +3,12 @@ from app.core.services.ingestion.document_service import DocumentService
 from app.core.services.extraction.text_extractor import TextExtractor
 from app.core.services.chunking.text_chunker import TextChunker
 from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
+from app.core.services.ner.ollama_ner_service import OllamaNERService
 from app.infrastructure.cache.redis_client import RedisCache
 from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
 from app.core.services.embedding.embedding_service import EmbeddingService
+from app.infrastructure.graph.neo4j_client import Neo4jClient
 from qdrant_client.models import PointStruct
 import logging
 import uuid
@@ -59,16 +61,12 @@ def process_document(file_id:str , file_path:str , file_name:str):
     
     # Step 4: Perform NER on the chunks
     try:
-        ner_service = SpacyNERService()
-        all_entities = []
-        logger.info(f"Starting NER on {len(chunks)} chunks")
-        for chunk in chunks:
-            entities = ner_service.extract_entities_spacy(chunk)
-            logger.info(f"Chunk entities: {entities}")
-            all_entities.extend(entities)
-        logger.info(f"Successfully extracted entities for {file_name}, total entities: {len(all_entities)}")
+        ner_service = OllamaNERService()
+        logger.info(f"Starting async NER on {len(chunks)} chunks")
+        all_entities = ner_service.extract_entities_all(chunks, batch_size=6)
+        logger.info(f"Total entities: {len(all_entities)}")
     except Exception as e:
-        logger.error(f"Error extracting entities for {file_name}: {e}", exc_info=True)
+        logger.error(f"Error in NER: {e}", exc_info=True)
         return
     
     # Step 5: Combine chunks with their entities and store in Redis
@@ -121,3 +119,19 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.info(f"Deleted cache key {cache_key} from Redis")
     except Exception as e:
         logger.error(f"Error deleting cache key {cache_key}: {e}")
+
+    try:
+        neo4j = Neo4jClient()
+        for entity in resolved_entities:
+            neo4j.create_entity(
+                entity_name=entity['text'],
+                properties={
+                    "label": entity['label']
+                }
+            )
+        neo4j.close()
+        logger.info(f"Successfully created entities in Neo4j for {file_name}")
+    except Exception as e:
+        logger.error(f"Error creating entities in Neo4j for {file_name}: {e}")
+        return
+    
