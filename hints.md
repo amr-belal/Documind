@@ -66,3 +66,17 @@ INFO:     127.0.0.1:51621 - "POST /upload HTTP/1.1" 200 OK
         "created_at": "2026-04-19T23:33:08.146353+00:00"
     }
 }
+
+
+
+
+### instead of SpaCy
+
+1. spaCy أول (سريع + مجاني)
+   ↓
+2. Filter الـ USEFUL_LABELS
+   ↓
+3. Ollama للـ re-labeling بس
+   (مش extraction من الصفر)
+   يبعت: entity text + spaCy label
+   يرجع: corrected label

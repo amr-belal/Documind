@@ -3,6 +3,7 @@ from app.core.services.ingestion.document_service import DocumentService
 from app.core.services.extraction.text_extractor import TextExtractor
 from app.core.services.chunking.text_chunker import TextChunker
 from app.core.services.ner.ner_service import SpacyNERService, GlinerNERService
+from app.core.services.ner.ollama_ner_service import OllamaNERService
 from app.infrastructure.cache.redis_client import RedisCache
 from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
@@ -60,11 +61,11 @@ def process_document(file_id:str , file_path:str , file_name:str):
     
     # Step 4: Perform NER on the chunks
     try:
-        ner_service = SpacyNERService()
+        ner_service = OllamaNERService()  # You can switch to SpacyNERService or GlinerNERService as needed
         all_entities = []
         logger.info(f"Starting NER on {len(chunks)} chunks")
         for chunk in chunks:
-            entities = ner_service.extract_entities_spacy(chunk)
+            entities = ner_service.extract_entities(chunk)
             logger.info(f"Chunk entities: {entities}")
             all_entities.extend(entities)
         logger.info(f"Successfully extracted entities for {file_name}, total entities: {len(all_entities)}")
@@ -137,5 +138,4 @@ def process_document(file_id:str , file_path:str , file_name:str):
     except Exception as e:
         logger.error(f"Error creating entities in Neo4j for {file_name}: {e}")
         return
-    
     
