@@ -9,6 +9,8 @@ from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
 from app.core.services.embedding.embedding_service import EmbeddingService
 from app.infrastructure.graph.neo4j_client import Neo4jClient
+from app.infrastructure.graph.graph_builder import GraphBuilder
+from app.core.services.claims.claim_extractor import ClaimExtractor
 from qdrant_client.models import PointStruct
 import logging
 import uuid
@@ -62,13 +64,26 @@ def process_document(file_id:str , file_path:str , file_name:str):
     # Step 4: Perform NER on the chunks
     try:
         ner_service = OllamaNERService()
+        all_entities = []
+        chunks_with_entities = [] 
         logger.info(f"Starting async NER on {len(chunks)} chunks")
-        all_entities = ner_service.extract_entities_all(chunks, batch_size=6)
+        
+        all_entities = ner_service.extract_entities_all(chunks, batch_size=4)
+        
+        
+        batch_size = 4
+        for i, chunk in enumerate(chunks):
+            batch_idx = i // batch_size
+            chunks_with_entities.append({
+                "chunk": chunk,
+                "entities": []  
+            })
+        
         logger.info(f"Total entities: {len(all_entities)}")
     except Exception as e:
         logger.error(f"Error in NER: {e}", exc_info=True)
         return
-    
+        
     # Step 5: Combine chunks with their entities and store in Redis
     try:
         redis_cache = RedisCache()
@@ -114,6 +129,7 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error generating embeddings or adding to Qdrant for {file_name}: {e}")
         return
     
+    # step 8: Store resolved entities in Neo4j and delete the combined data from Redis
     try:
         redis_cache.delete(cache_key)
         logger.info(f"Deleted cache key {cache_key} from Redis")
@@ -135,3 +151,32 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error creating entities in Neo4j for {file_name}: {e}")
         return
     
+    # Step 9: Link paper to entities in Neo4j
+    try:
+        graph_builder = GraphBuilder()
+        
+        # Create Paper node
+        graph_builder.add_paper(file_id, file_name)
+        
+        # Create Entity nodes + link to Paper
+        for entity in resolved_entities:
+            graph_builder.add_entity({"name": entity["text"], "label": entity["label"]})
+            graph_builder.link_paper_to_entity(file_id, entity["text"])
+        
+        graph_builder.close()
+        logger.info(f"Built knowledge graph for {file_name}")
+    except Exception as e:
+        logger.error(f"Error building graph for {file_name}: {e}")
+        return
+    
+    # step 10: extract claims and add to graph 
+    try:
+        claim_extractor = ClaimExtractor()
+        all_claims = []
+        for chunk in chunks:
+            claims = claim_extractor.extract_claims(chunk, all_entities)
+            all_claims.extend(claims)
+        logger.info(f"Extracted {len(all_claims)} claims for {file_name}")
+    except Exception as e:
+        logger.error(f"Error extracting claims: {e}")
+        return
