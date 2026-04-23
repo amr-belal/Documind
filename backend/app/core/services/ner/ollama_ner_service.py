@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class OllamaNERService:
     
-    def __init__(self, model: str = "llama3.2"):
+    def __init__(self, model: str = "qwen2.5:0.5b"):
         self.model = model
         self.url = "http://localhost:11434/api/generate"
     
