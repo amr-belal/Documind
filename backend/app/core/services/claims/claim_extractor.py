@@ -11,21 +11,27 @@ class ClaimExtractor:
         self.model = model
         self.url = "http://localhost:11434/api/generate"
     
-    def extract_claims(self, chunk: str, entities: list[dict]) -> list[dict]:
+    def extract_claims_batch(self, chunks: list[str], entities: list[dict]) -> list[dict]:
         entity_names = [e["text"] for e in entities]
+        combined = "\n\n---\n\n".join(
+            [f"Chunk {i+1}:\n{chunk}" for i, chunk in enumerate(chunks)]
+        )
         
-        prompt = f"""Extract key claims from this research text.
+        prompt = f"""Read the text below and extract the main claims.
 Focus on these entities: {entity_names}
 
-A claim is a statement the authors make.
-Return ONLY a JSON array:
-[{{"claim": "X outperforms Y", "about": "entity name", "type": "OUTPERFORMS/PROPOSES/CONTRADICTS/EXTENDS/USES"}}]
-
 Text:
-{chunk}
+{combined}
+
+For each claim found, return:
+- claim: the actual statement from the text
+- about: the main subject  
+- type: OUTPERFORMS, PROPOSES, USES, or EXTENDS
+
+Return as JSON array only. If no claims found, return [].
 
 JSON:"""
-        
+    
         try:
             response = requests.post(self.url, json={
                 "model": self.model,
@@ -38,9 +44,19 @@ JSON:"""
             if match:
                 result = match.group()
             
-            claims = json.loads(result)
+            try:
+                claims = json.loads(result)
+            except json.JSONDecodeError:
+                result = re.sub(r',\s*]', ']', result)
+                result = re.sub(r',\s*}', '}', result)
+                try:
+                    claims = json.loads(result)
+                except:
+                    logger.error(f"Failed to parse claims JSON: {result[:100]}")
+                    return []
+            
             return [c for c in claims if isinstance(c, dict) and "claim" in c]
             
         except Exception as e:
-            logger.error(f"Error extracting claims: {e}")
+            logger.error(f"Error extracting claims batch: {e}")
             return []

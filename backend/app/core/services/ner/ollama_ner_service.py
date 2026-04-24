@@ -1,18 +1,14 @@
-import aiohttp
-import asyncio
+import requests
 import json
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from celery import chunks
-import requests
-
 
 logger = logging.getLogger(__name__)
 
 class OllamaNERService:
     
-    def __init__(self, model: str = "qwen2.5:0.5b"):
+    def __init__(self, model: str = "qwen2.5:1.5b"):
         self.model = model
         self.url = "http://localhost:11434/api/generate"
     
@@ -56,6 +52,7 @@ JSON:"""
             entities = json.loads(result)
         except json.JSONDecodeError:
             result = re.sub(r'"\s+"', '", "', result)
+            result = re.sub(r',\s*]', ']', result)   
             try:
                 entities = json.loads(result)
             except:
@@ -76,9 +73,11 @@ JSON:"""
             response = requests.post(self.url, json={
                 "model": self.model,
                 "prompt": self._build_prompt(chunks),
-                "stream": False
+                "stream": False,
+                "format": "json"
             })
             return self._parse_response(response.json()["response"].strip())
+        
         except Exception as e:
             logger.error(f"Error: {e}")
             return []
@@ -90,3 +89,4 @@ JSON:"""
             results = list(executor.map(self._extract_single_batch, batches))
         
         return [entity for batch_result in results for entity in batch_result]
+   

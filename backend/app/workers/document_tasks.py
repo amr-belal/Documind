@@ -9,6 +9,7 @@ from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
 from app.core.services.embedding.embedding_service import EmbeddingService
 from app.infrastructure.graph.neo4j_client import Neo4jClient
+from app.core.services.extraction.section_extractor import SectionExtractor
 from app.infrastructure.graph.graph_builder import GraphBuilder
 from app.core.services.claims.claim_extractor import ClaimExtractor
 from qdrant_client.models import PointStruct
@@ -52,6 +53,14 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error downloading file {file_name}: {e}")
         return
     
+    # Step 2b: Extract important sections only
+    try:
+        section_extractor = SectionExtractor()
+        text = section_extractor.extract_important_sections(text)
+        logger.info(f"Extracted important sections: {len(text)} chars")
+    except Exception as e:
+        logger.warning(f"Section extraction failed, using full text: {e}")
+    
     # Step 3: Chunk the extracted text
     try:
         text_chunker = TextChunker()
@@ -64,26 +73,13 @@ def process_document(file_id:str , file_path:str , file_name:str):
     # Step 4: Perform NER on the chunks
     try:
         ner_service = OllamaNERService()
-        all_entities = []
-        chunks_with_entities = [] 
         logger.info(f"Starting async NER on {len(chunks)} chunks")
-        
         all_entities = ner_service.extract_entities_all(chunks, batch_size=4)
-        
-        
-        batch_size = 4
-        for i, chunk in enumerate(chunks):
-            batch_idx = i // batch_size
-            chunks_with_entities.append({
-                "chunk": chunk,
-                "entities": []  
-            })
-        
         logger.info(f"Total entities: {len(all_entities)}")
     except Exception as e:
         logger.error(f"Error in NER: {e}", exc_info=True)
         return
-        
+            
     # Step 5: Combine chunks with their entities and store in Redis
     try:
         redis_cache = RedisCache()
@@ -129,54 +125,52 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error generating embeddings or adding to Qdrant for {file_name}: {e}")
         return
     
-    # step 8: Store resolved entities in Neo4j and delete the combined data from Redis
+    # Step 8: Delete from Redis
     try:
         redis_cache.delete(cache_key)
         logger.info(f"Deleted cache key {cache_key} from Redis")
     except Exception as e:
         logger.error(f"Error deleting cache key {cache_key}: {e}")
-
-    try:
-        neo4j = Neo4jClient()
-        for entity in resolved_entities:
-            neo4j.create_entity(
-                entity_name=entity['text'],
-                properties={
-                    "label": entity['label']
-                }
-            )
-        neo4j.close()
-        logger.info(f"Successfully created entities in Neo4j for {file_name}")
-    except Exception as e:
-        logger.error(f"Error creating entities in Neo4j for {file_name}: {e}")
-        return
     
-    # Step 9: Link paper to entities in Neo4j
+    # Step 9: Build Knowledge Graph
     try:
         graph_builder = GraphBuilder()
-        
-        # Create Paper node
         graph_builder.add_paper(file_id, file_name)
-        
-        # Create Entity nodes + link to Paper
         for entity in resolved_entities:
             graph_builder.add_entity({"name": entity["text"], "label": entity["label"]})
             graph_builder.link_paper_to_entity(file_id, entity["text"])
-        
-        graph_builder.close()
+        # لا تعمل close() هنا
         logger.info(f"Built knowledge graph for {file_name}")
     except Exception as e:
-        logger.error(f"Error building graph for {file_name}: {e}")
+        logger.error(f"Error building graph: {e}")
         return
-    
-    # step 10: extract claims and add to graph 
+
+
+    # Step 10: Claims
     try:
         claim_extractor = ClaimExtractor()
         all_claims = []
-        for chunk in chunks:
-            claims = claim_extractor.extract_claims(chunk, all_entities)
+        batch_size = 4
+        
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i+batch_size]
+            
+            # Skip لو مفيش entities في الـ batch
+            batch_entities = [
+                e for e in all_entities 
+                if any(e["text"].lower() in c.lower() for c in batch)
+            ]
+            if not batch_entities:
+                continue
+            
+            claims = claim_extractor.extract_claims_batch(batch, batch_entities)
             all_claims.extend(claims)
-        logger.info(f"Extracted {len(all_claims)} claims for {file_name}")
+        
+        for claim in all_claims:
+            graph_builder.add_claim(file_id, claim)
+        
+        logger.info(f"Stored {len(all_claims)} claims in Neo4j")
     except Exception as e:
-        logger.error(f"Error extracting claims: {e}")
-        return
+        logger.error(f"Error extracting/storing claims: {e}")
+    finally:
+        graph_builder.close()

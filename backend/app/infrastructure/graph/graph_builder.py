@@ -43,3 +43,24 @@ class GraphBuilder:
                 file_id=file_id,
                 entity_name=entity_name
             )
+    def add_claim(self, file_id: str, claim: dict):
+        with self.client.driver.session() as session:
+            session.run(
+                "MATCH (p:Paper {id: $file_id}) "
+                "MERGE (c:Claim {text: $claim_text}) "
+                "SET c.type = $claim_type "
+                "MERGE (p)-[:MAKES_CLAIM]->(c)",
+                file_id=file_id,
+                claim_text=claim["claim"],
+                claim_type=claim.get("type", "UNKNOWN")
+            )
+            
+            # Link claim to entity
+            if "about" in claim:
+                session.run(
+                    "MATCH (c:Claim {text: $claim_text}) "
+                    "MATCH (e:Entity {name: $entity_name}) "
+                    "MERGE (c)-[:ABOUT]->(e)",
+                    claim_text=claim["claim"],
+                    entity_name=claim["about"]
+                )
