@@ -9,6 +9,7 @@ from app.core.services.ner.entity_resolver import EntityResolver
 from app.infrastructure.vector_store.qdrant_client import QdrantVectorStore
 from app.core.services.embedding.embedding_service import EmbeddingService
 from app.infrastructure.graph.neo4j_client import Neo4jClient
+from app.core.services.extraction.section_extractor import SectionExtractor
 from app.infrastructure.graph.graph_builder import GraphBuilder
 from app.core.services.claims.claim_extractor import ClaimExtractor
 from qdrant_client.models import PointStruct
@@ -51,6 +52,14 @@ def process_document(file_id:str , file_path:str , file_name:str):
     except Exception as e:
         logger.error(f"Error downloading file {file_name}: {e}")
         return
+    
+    # Step 2b: Extract important sections only
+    try:
+        section_extractor = SectionExtractor()
+        text = section_extractor.extract_important_sections(text)
+        logger.info(f"Extracted important sections: {len(text)} chars")
+    except Exception as e:
+        logger.warning(f"Section extraction failed, using full text: {e}")
     
     # Step 3: Chunk the extracted text
     try:
@@ -136,12 +145,25 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error building graph: {e}")
         return
 
+
     # Step 10: Claims
     try:
         claim_extractor = ClaimExtractor()
         all_claims = []
-        for chunk in chunks:
-            claims = claim_extractor.extract_claims(chunk, all_entities)
+        batch_size = 4
+        
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i+batch_size]
+            
+            # Skip لو مفيش entities في الـ batch
+            batch_entities = [
+                e for e in all_entities 
+                if any(e["text"].lower() in c.lower() for c in batch)
+            ]
+            if not batch_entities:
+                continue
+            
+            claims = claim_extractor.extract_claims_batch(batch, batch_entities)
             all_claims.extend(claims)
         
         for claim in all_claims:
@@ -151,4 +173,4 @@ def process_document(file_id:str , file_path:str , file_name:str):
     except Exception as e:
         logger.error(f"Error extracting/storing claims: {e}")
     finally:
-        graph_builder.close() 
+        graph_builder.close()
