@@ -38,9 +38,20 @@ JSON:"""
             if match:
                 result = match.group()
             
-            claims = json.loads(result)
+            try:
+                claims = json.loads(result)
+            except json.JSONDecodeError:
+                result = re.sub(r',\s*]', ']', result)
+                result = re.sub(r',\s*}', '}', result)
+                try:
+                    claims = json.loads(result)
+                except:
+                    logger.error(f"Failed to parse claims JSON: {result[:100]}")
+                    return []
             return [c for c in claims if isinstance(c, dict) and "claim" in c]
             
         except Exception as e:
             logger.error(f"Error extracting claims: {e}")
             return []
+        
+    
