@@ -84,6 +84,30 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: always
+
 volumes:
   postgres_data:
   minio_data: 
@@ -91,3 +115,5 @@ volumes:
   neo4j_data: 
   pgadmin_data_new:
   qdrant_data:
+  prometheus_data:
+  grafana_data:

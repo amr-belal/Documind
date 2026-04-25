@@ -48,11 +48,12 @@ class QueryService:
                 for kw in keywords:
                     
                     cypher_query = """
-                    MATCH (e:Entity)<-[:ABOUT]-(c:Claim)<-[:MAKES_CLAIM]-(p:Paper)
-                    WHERE toLower(e.name) CONTAINS toLower($keyword)
-                    RETURN p.name AS paper, c.text AS claim, c.type AS type
-                    LIMIT 5
-                    """
+MATCH (p:Paper)-[:MAKES_CLAIM]->(c:Claim)
+WHERE toLower(c.text) CONTAINS toLower($keyword)
+   OR toLower(c.about) CONTAINS toLower($keyword)
+RETURN p.name AS paper, c.text AS claim, c.type AS type
+LIMIT 5
+"""
                     res = session.run(cypher_query, keyword=kw)
                     for record in res:
                         graph_context.append(f"[{record['paper']}] {record['type']}: {record['claim']}")

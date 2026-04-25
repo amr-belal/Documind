@@ -78,6 +78,13 @@ Terminal 3 — Celery Worker:
 cd /Users/mac/Amrbelal/Documind/Documind/backend
 PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend celery -A app.workers.celery_app worker --loglevel=info
 
+or 
+
+(prefered)
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+celery -A app.workers.celery_app  worker --pool=threads --loglevel=info
+
+
 Terminal 4 — Kafka Consumer:
 
 cd /Users/mac/Amrbelal/Documind/Documind/backend
