@@ -48,11 +48,12 @@ class GraphBuilder:
             session.run(
                 "MATCH (p:Paper {id: $file_id}) "
                 "MERGE (c:Claim {text: $claim_text}) "
-                "SET c.type = $claim_type "
+                "SET c.type = $claim_type, c.about = $claim_about "
                 "MERGE (p)-[:MAKES_CLAIM]->(c)",
                 file_id=file_id,
                 claim_text=claim["claim"],
-                claim_type=claim.get("type", "UNKNOWN")
+                claim_type=claim.get("type", "UNKNOWN"),
+                claim_about=claim.get("about", "")
             )
             
             # Link claim to entity
