@@ -88,3 +88,31 @@ INFO:     127.0.0.1:51621 - "POST /upload HTTP/1.1" 200 OK
     Batch processing  & Async
     100 to 54
 
+
+
+
+## Contradiction Detection service 
+
+
+- no conts. between two uploaded paper 
+
+```bash
+(venv) mac@macs-MacBook-Pro backend % PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python test_contradiction.py
+🚀 Starting Contradiction Test...
+INFO: 🔍 Starting Contradiction Detection Job...
+INFO: No overlapping claims found.
+```
+- added fake conts. to explore the service 
+``` bash
+(venv) mac@macs-MacBook-Pro backend % PYTHONPATH=/Users/mac/Amrbelal/Documind/Documind/backend python test_contradiction.py
+🚀 Starting Contradiction Test...
+INFO: 🔍 Starting Contradiction Detection Job...
+INFO: Analyzing claims about: Testing Algorithm
+INFO: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+INFO: Result: CONTRADICTION - Claim 1 states that the Testing Algorithm failed with 10% accuracy, while Claim 2 asserts that it achieved 99% accuracy and is the best, which are mutually exclusive outcomes.
+INFO: Created CONTRADICTION link between claims in Neo4j.
+INFO: Received notification from DBMS server: <GqlStatusObject gql_status='03N90', status_description="info: cartesian product. The disconnected pattern '(c1:Claim {text: $claim1}), (c2:Claim {text: $claim2})' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.", position=<SummaryInputPosition line=2, column=9, offset=9>, raw_classification='PERFORMANCE', classification=<NotificationClassification.PERFORMANCE: 'PERFORMANCE'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'PERFORMANCE', '_severity': 'INFORMATION', '_position': {'offset': 9, 'line': 2, 'column': 9}, 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: '\n        MATCH (c1:Claim {text: $claim1}), (c2:Claim {text: $claim2})\n        MERGE (c1)-[r:RELATES_TO {type: $rel_type}]->(c2)\n        SET r.reason = $reason\n        '
+INFO: ✅ Contradiction Detection Job Completed.
+(venv) mac@macs-MacBook-Pro backend % 
+
+```
