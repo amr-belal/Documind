@@ -180,12 +180,12 @@ def process_document(file_id:str , file_path:str , file_name:str):
     except Exception as e:
         logger.error(f"Error extracting/storing claims: {e}")
     finally:
-        graph_builder.close()
-    
-        analyze_contradictions_task.delay()
-    
+        graph_builder.close()  
 
-    
+    # Trigger Contradiction Detection
+    analyze_contradictions_task.delay()  
+
+
 # New Task: extract contradictions 
 
 @celery_app.task
