@@ -6,7 +6,7 @@ from app.infrastructure.database.database import Database
 from app.infrastructure.database.models import Base
 
 
-from app.api.routes import upload
+from app.api.routes import upload , search
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,6 +25,7 @@ app = FastAPI(
 )
 
 app.include_router(upload.router, tags=["Documents"])
+app.include_router(search.router, tags=["Search"])
 
 @app.get("/")
 async def root():
