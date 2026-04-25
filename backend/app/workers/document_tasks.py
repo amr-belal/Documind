@@ -15,6 +15,7 @@ from app.core.services.claims.claim_extractor import ClaimExtractor
 from app.core.services.claims.claim_extractor import OpenRouterClaimExtractor
 from app.core.services.ner.ollama_ner_service import GroqNERService
 from app.core.services.ner.ollama_ner_service import OpenRouterNERService
+from app.core.services.contradiction.contradiction_service import ContradictionDetector
 from qdrant_client.models import PointStruct
 import logging
 import uuid
@@ -75,9 +76,9 @@ def process_document(file_id:str , file_path:str , file_name:str):
     
     # Step 4: Perform NER on the chunks
     try:
-        # ner_service = OllamaNERService()
+        ner_service = OllamaNERService()
         # ner_service = GroqNERService()
-        ner_service = OpenRouterNERService()
+        # ner_service = OpenRouterNERService()
         logger.info(f"Starting async NER on {len(chunks)} chunks")
         all_entities = ner_service.extract_entities_all(chunks, batch_size=4)
         logger.info(f"Total entities: {len(all_entities)}")
@@ -153,8 +154,8 @@ def process_document(file_id:str , file_path:str , file_name:str):
 
     # Step 10: Claims
     try:
-        # claim_extractor = ClaimExtractor()
-        claim_extractor = OpenRouterClaimExtractor()
+        claim_extractor = ClaimExtractor()
+        # claim_extractor = OpenRouterClaimExtractor()
         all_claims = []
         batch_size = 4
         
@@ -180,3 +181,19 @@ def process_document(file_id:str , file_path:str , file_name:str):
         logger.error(f"Error extracting/storing claims: {e}")
     finally:
         graph_builder.close()
+    
+        analyze_contradictions_task.delay()
+    
+
+    
+# New Task: extract contradictions 
+
+@celery_app.task
+def analyze_contradictions_task():
+    """Celery task to run contradiction detection in the background."""
+    logger.info("Starting background contradiction detection task...")
+    try:
+        detector = ContradictionDetector()
+        detector.run_detection_job()
+    except Exception as e:
+        logger.error(f"Error in contradiction detection task: {e}")
