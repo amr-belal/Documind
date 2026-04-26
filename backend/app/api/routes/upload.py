@@ -98,3 +98,16 @@ async def upload_file(
         "message": "File uploaded successfully", 
         "files": results
     }
+
+
+from sqlalchemy.future import select
+from app.infrastructure.database.models import FileRecord 
+
+@router.get("/files")
+async def get_all_files(db: AsyncSession = Depends(get_db)):
+   
+    result = await db.execute(select(FileRecord).order_by(FileRecord.upload_time.desc()))
+    files = result.scalars().all()
+    
+   
+    return [{"name": f.file_name, "status": "success"} for f in files]

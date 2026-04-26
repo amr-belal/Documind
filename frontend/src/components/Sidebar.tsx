@@ -222,6 +222,7 @@ export const Sidebar = () => {
             )}
           </div>
         </section>
+        
 
         {/* Systems Health */}
         <section className="mb-4">
@@ -256,5 +257,8 @@ export const Sidebar = () => {
         <span>v1.2.0</span>
       </div>
     </aside>
+
+
+
   );
 };

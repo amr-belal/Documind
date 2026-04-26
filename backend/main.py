@@ -7,6 +7,7 @@ from app.api.routes.contradiction import router as contradiction_router
 from app.infrastructure.database.database import Database
 from app.infrastructure.database.models import Base
 from app.api.routes import upload, search
+from app.api.routes import graph_viz
 
 
 
@@ -43,6 +44,7 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(upload.router, prefix="/ingest", tags=["Documents"]) 
 app.include_router(search.router, prefix="/search", tags=["Search"])
 app.include_router(contradiction_router, prefix="/analysis")
+app.include_router(graph_viz.router, prefix="/graph", tags=["Graph"])
 
 @app.get("/")
 async def root():
