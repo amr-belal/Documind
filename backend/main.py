@@ -43,7 +43,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
-
+from app.api.routes.contradiction import router as contradiction_router
 from app.infrastructure.database.database import Database
 from app.infrastructure.database.models import Base
 from app.api.routes import upload, search
@@ -72,6 +72,7 @@ Instrumentator().instrument(app).expose(app)
 
 app.include_router(upload.router, tags=["Documents"])
 app.include_router(search.router, tags=["Search"])
+app.include_router(contradiction_router)
 
 @app.get("/")
 async def root():

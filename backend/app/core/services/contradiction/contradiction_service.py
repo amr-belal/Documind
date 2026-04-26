@@ -11,13 +11,33 @@ class ContradictionDetector:
         self.llm_client = GroqClient() 
 
     def fetch_potential_pairs(self, limit: int = 20):
-        
+
         query = """
-        MATCH (p1:Paper)-[:MAKES_CLAIM]->(c1:Claim)-[:ABOUT]->(e:Entity)<-[:ABOUT]-(c2:Claim)<-[:MAKES_CLAIM]-(p2:Paper)
-        WHERE elementId(p1) <> elementId(p2) AND elementId(c1) > elementId(c2)
-        RETURN c1.text AS claim1, c2.text AS claim2, e.name AS entity, p1.name AS paper1, p2.name AS paper2
-        LIMIT $limit
-        """
+MATCH (p1:Paper)-[:MAKES_CLAIM]->(c1:Claim)
+MATCH (p2:Paper)-[:MAKES_CLAIM]->(c2:Claim)
+WHERE elementId(p1) <> elementId(p2) 
+AND elementId(c1) > elementId(c2)
+AND c1.about IS NOT NULL 
+AND c1.about = c2.about
+AND c1.about <> 'text'
+AND c1.about <> ''
+AND size(c1.about) > 3
+RETURN c1.text AS claim1, c2.text AS claim2, 
+       c1.about AS entity, p1.name AS paper1, p2.name AS paper2
+LIMIT $limit
+"""
+        
+#         query = """  # with no filter on text 
+# MATCH (p1:Paper)-[:MAKES_CLAIM]->(c1:Claim)
+# MATCH (p2:Paper)-[:MAKES_CLAIM]->(c2:Claim)
+# WHERE elementId(p1) <> elementId(p2) 
+# AND elementId(c1) > elementId(c2)
+# AND c1.about IS NOT NULL 
+# AND c1.about = c2.about
+# RETURN c1.text AS claim1, c2.text AS claim2, 
+#        c1.about AS entity, p1.name AS paper1, p2.name AS paper2
+# LIMIT $limit
+# """
         with self.neo4j_client.driver.session() as session:
             result = session.run(query, limit=limit)
             return [record.data() for record in result]

@@ -183,7 +183,7 @@ def process_document(file_id:str , file_path:str , file_name:str):
         graph_builder.close()  
 
     # Trigger Contradiction Detection
-    analyze_contradictions_task.delay()  
+    # analyze_contradictions_task.delay()  
 
 
 # New Task: extract contradictions 
