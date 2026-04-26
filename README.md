@@ -103,3 +103,8 @@ entity resolution feature
 62 entities → 27 unique ✅ (exact match)
 
 27 entities → 25 unique ✅ ( exact -> fuzzy match)
+
+
+Metric,Score,Status,Interpretation
+Faithfulness,1.00 / 1.00,✅ Passed,Zero hallucinations detected. The answer is 100% derived from the retrieved context.
+Answer Relevancy,N/A,⚠️ Skipped,Pending Groq API 'n=1' limitation handling.

@@ -13,7 +13,12 @@ class KafkaConsumerClient:
             topic,
             bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
             group_id=group_id,
-            value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+            auto_offset_reset='earliest', 
+            enable_auto_commit=True,      
+            session_timeout_ms=60000,     
+            max_poll_interval_ms=300000,   
+            heartbeat_interval_ms=10000   
         )
         logger.info(f"Kafka consumer initialized for topic: {topic} with group ID: {group_id}")
     

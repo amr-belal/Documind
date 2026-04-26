@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, func, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, func, Enum as SQLEnum ,Text
 from app. core.enums.source_type import SourceType
 from app.core.enums.file_type import FileType
 import enum
@@ -32,3 +32,6 @@ class FileRecord(BaseModel):
     file_type = Column(SQLEnum(FileType), nullable=False)
     source = Column(SQLEnum(SourceType), nullable=False)
     status = Column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.PENDING)
+
+    hash = Column(String, index=True, nullable=True) 
+    

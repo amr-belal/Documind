@@ -78,7 +78,10 @@ LIMIT 5
         logger.info("✍️ Generating final answer via LLM...")
         final_prompt = f"""
         You are an expert AI research assistant. Answer the user's query using ONLY the provided context.
-        
+       
+        Analyze the following user query. Categorize it into ONE of these two categories:
+        1. 'GREETING': If it's a greeting, a thank you, or general small talk. ==> Answer in a friendly way to the greeting
+        2. 'RESEARCH': If it's a specific question about data, documents, BERT, architecture, or research.
         User Query: {query}
         
         ==== Vector Store Context (Text Chunks) ====
