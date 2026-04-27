@@ -29,6 +29,7 @@ class FileRecord(BaseModel):
     file_path = Column(String, nullable=False)
     user_id = Column(String, nullable=False)
     
+    
     file_type = Column(SQLEnum(FileType), nullable=False)
     source = Column(SQLEnum(SourceType), nullable=False)
     status = Column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.PENDING)
