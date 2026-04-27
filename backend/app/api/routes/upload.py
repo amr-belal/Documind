@@ -105,9 +105,8 @@ from app.infrastructure.database.models import FileRecord
 
 @router.get("/files")
 async def get_all_files(db: AsyncSession = Depends(get_db)):
-   
-    result = await db.execute(select(FileRecord).order_by(FileRecord.upload_time.desc()))
+    # الترتيب بأحدث ID للهروب من تعديل الداتابيز
+    result = await db.execute(select(FileRecord).order_by(FileRecord.id.desc()))
     files = result.scalars().all()
     
-   
     return [{"name": f.file_name, "status": "success"} for f in files]
