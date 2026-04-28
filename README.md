@@ -108,3 +108,6 @@ entity resolution feature
 Metric,Score,Status,Interpretation
 Faithfulness,1.00 / 1.00,✅ Passed,Zero hallucinations detected. The answer is 100% derived from the retrieved context.
 Answer Relevancy,N/A,⚠️ Skipped,Pending Groq API 'n=1' limitation handling.
+
+
+npm run dev

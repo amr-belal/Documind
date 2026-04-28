@@ -8,7 +8,7 @@ neo4j_client = Neo4jClient()
 async def get_graph_data():
     query = """
     MATCH (n)-[r]->(m)
-    RETURN n, r, m LIMIT 100
+    RETURN n, r, m LIMIT 550
     """
     with neo4j_client.driver.session() as session:
         result = session.run(query)
