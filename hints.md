@@ -116,3 +116,120 @@ INFO: ✅ Contradiction Detection Job Completed.
 (venv) mac@macs-MacBook-Pro backend % 
 
 ```
+
+```
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React/TS)                     │
+│  ┌──────────┐  ┌─────────────┐  ┌──────────────────────────┐   │
+│  │ Sidebar  │  │ Chat Agent  │  │ Knowledge Graph Viewer   │   │
+│  │ Upload   │  │ RAG Query   │  │ (Neo4j Visualization)    │   │
+│  └──────────┘  └─────────────┘  └──────────────────────────┘   │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │ HTTP
+┌─────────────────────────▼───────────────────────────────────────┐
+│                      FASTAPI (Backend)                          │
+│  ┌────────────┐  ┌────────────┐  ┌──────────────────────────┐  │
+│  │ /upload    │  │ /search    │  │ /analyze-contradictions  │  │
+│  │ /files     │  │ (RAG)      │  │ /arxiv (missing!)        │  │
+│  └─────┬──────┘  └─────┬──────┘  └──────────────────────────┘  │
+└────────┼───────────────┼─────────────────────────────────────────┘
+         │               │
+         ▼               ▼
+┌────────────────┐  ┌──────────────────────────────────────────┐
+│     KAFKA      │  │           QUERY SERVICE                  │
+│  raw_documents │  │  Qdrant Search + Neo4j Graph + Groq LLM  │
+└───────┬────────┘  └──────────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    CELERY WORKERS                             │
+│                                                               │
+│  process_document task:                                       │
+│  1. Download PDF (MinIO)                                      │
+│  2. Extract Text (PyMuPDF)                                    │
+│  3. Section Extraction                                        │
+│  4. Chunking (LangChain)                                      │
+│  5. NER (Ollama/Groq/OpenRouter)                              │
+│  6. Entity Resolution (Exact + Fuzzy)                         │
+│  7. Embeddings → Qdrant                                       │
+│  8. Knowledge Graph → Neo4j                                   │
+│  9. Claim Extraction → Neo4j                                  │
+│                                                               │
+│  analyze_contradictions task:                                 │
+│  1. Fetch claim pairs (Neo4j)                                 │
+│  2. LLM Analysis (Groq)                                       │
+│  3. Store CONTRADICTION/AGREEMENT (Neo4j)                     │
+└───────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────────────────────────────┐
+│                      INFRASTRUCTURE                           │
+│                                                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
+│  │ MinIO    │  │ Postgres │  │  Redis   │  │   Qdrant    │  │
+│  │ PDF Store│  │ Metadata │  │  Cache   │  │  Vectors    │  │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │
+│                                                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────┐   │
+│  │  Neo4j   │  │Zookeeper │  │    Prometheus + Grafana   │   │
+│  │  Graph   │  │  +Kafka  │  │       Monitoring          │   │
+│  └──────────┘  └──────────┘  └──────────────────────────┘   │
+└───────────────────────────────────────────────────────────────┘
+
+```
+
+```
+AIRFLOW SCHEDULER (كل يوم 2 صبح)
+        │
+        ▼
+┌───────────────────────────────────┐
+│         ArXiv DAG                 │
+│                                   │
+│  Task 1: fetch_papers             │
+│  ─ ArXiv API → جيب آخر papers    │
+│  ─ Filter بـ keywords             │
+│  ─ (AI, NLP, transformers...)     │
+│                                   │
+│  Task 2: check_duplicates         │
+│  ─ تحقق من PostgreSQL             │
+│  ─ لو موجود → skip                │
+│  ─ لو جديد → continue            │
+│                                   │
+│  Task 3: download_pdf             │
+│  ─ Download الـ PDF               │
+│  ─ Upload لـ MinIO                │
+│  ─ Save metadata في Postgres      │
+│                                   │
+│  Task 4: publish_to_kafka         │
+│  ─ Publish message لـ Kafka       │
+│  ─ Topic: raw_documents           │
+│                                   │
+│  Task 5: notify                   │
+│  ─ Log كام paper اتضاف           │
+└───────────────────────────────────┘
+        │
+        ▼
+    KAFKA → CELERY → نفس الـ pipeline العادي
+```
+
+
+```
+كل يوم 2 صبح:
+Airflow → ArXiv API → Download PDFs
+                          ↓
+                       MinIO
+                          ↓
+                       Kafka
+                          ↓
+                       Celery
+                          ↓
+                 NER + Graph + Claims
+                          ↓
+                 Contradiction Detection
+                          ↓
+              User يصحى يلاقي papers جديدة
+              اتحللت وجاهزة للـ query
+
+
+```
