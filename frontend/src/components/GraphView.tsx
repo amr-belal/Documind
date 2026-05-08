@@ -1,535 +1,50 @@
-// import React, { useEffect, useState, useRef, useCallback } from 'react';
-// import ForceGraph2D from 'react-force-graph-2d';
-// import api from '../api/axios';
-// import { Loader2, RefreshCw, Search, Filter } from 'lucide-react';
-
-// export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void }) => {
-//   const [data, setData] = useState({ nodes: [], links: [] });
-//   const [loading, setLoading] = useState(true);
-//   const fgRef = useRef<any>();
-  
-//   // تايمر حساب الضغطة المزدوجة
-//   const lastClickTime = useRef(0);
-
-//   const [highlightNodes, setHighlightNodes] = useState(new Set());
-//   const [highlightLinks, setHighlightLinks] = useState(new Set());
-//   const [hoverNode, setHoverNode] = useState<any>(null);
-  
-//   const [searchQuery, setSearchQuery] = useState('');
-//   const [activeFilter, setActiveFilter] = useState<'All' | 'Paper' | 'Claim'>('All');
-
-//   useEffect(() => {
-//     api.get('/graph/data')
-//       .then(res => {
-//         setData(res.data);
-//         setLoading(false);
-//       })
-//       .catch(() => setLoading(false));
-//   }, []);
-
-//   const handleNodeHover = useCallback((node: any) => {
-//     highlightNodes.clear();
-//     highlightLinks.clear();
-    
-//     if (node) {
-//       highlightNodes.add(node);
-//       data.links.forEach((link: any) => {
-//         if (link.source === node || link.target === node || link.source.id === node.id || link.target.id === node.id) {
-//           highlightLinks.add(link);
-//           highlightNodes.add(link.source === node ? link.target : link.source);
-//         }
-//       });
-//     }
-
-//     setHoverNode(node || null);
-//     setHighlightNodes(new Set(highlightNodes));
-//     setHighlightLinks(new Set(highlightLinks));
-//   }, [data]);
-
-//   const handleLinkHover = useCallback((link: any) => {
-//     highlightNodes.clear();
-//     highlightLinks.clear();
-
-//     if (link) {
-//       highlightLinks.add(link);
-//       highlightNodes.add(link.source);
-//       highlightNodes.add(link.target);
-//     }
-
-//     setHighlightNodes(new Set(highlightNodes));
-//     setHighlightLinks(new Set(highlightLinks));
-//   }, []);
-
-//   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const query = e.target.value;
-//     setSearchQuery(query);
-    
-//     if (query.trim() === '') {
-//       setHoverNode(null);
-//       highlightNodes.clear();
-//       setHighlightNodes(new Set());
-//       return;
-//     }
-
-//     const foundNode = data.nodes.find((n: any) => 
-//       n.name?.toLowerCase().includes(query.toLowerCase())
-//     );
-
-//     if (foundNode) {
-//       fgRef.current?.centerAt((foundNode as any).x, (foundNode as any).y, 1000);
-//       fgRef.current?.zoom(8, 1000);
-//       handleNodeHover(foundNode);
-//     }
-//   };
-
-//   // لوجيك الدابل كليك لربط الجراف بالشات
-//   const handleNodeClick = useCallback((node: any) => {
-//     const now = Date.now();
-//     if (now - lastClickTime.current < 300) {
-//       // دابل كليك -> ابعت للذكاء الاصطناعي
-//       if (onAskAI) onAskAI(node.name);
-//     } else {
-//       // ضغطة عادية -> زووم
-//       fgRef.current?.centerAt(node.x, node.y, 1000);
-//       fgRef.current?.zoom(6, 1000);
-//     }
-//     lastClickTime.current = now;
-//   }, [onAskAI]);
-
-//   if (loading) return (
-//     <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4">
-//       <Loader2 className="animate-spin" size={40} />
-//       <p className="text-sm font-mono uppercase tracking-widest">Constructing Knowledge Graph...</p>
-//     </div>
-//   );
-
-//   return (
-//     <div className="w-full h-full bg-[#0f172a] relative group overflow-hidden">
-      
-//       {/* Control Panel */}
-//       <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
-//         <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-2.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all focus-within:border-blue-500/50 focus-within:shadow-blue-500/20">
-//           <Search size={16} className="text-slate-400 ml-1" />
-//           <input 
-//             type="text" 
-//             placeholder="Search entities or papers..." 
-//             value={searchQuery}
-//             onChange={handleSearch}
-//             className="bg-transparent border-none text-[13px] text-white placeholder-slate-500 focus:outline-none w-56 pr-2 font-medium"
-//           />
-//         </div>
-
-//         <div className="flex items-center gap-2">
-//           <Filter size={14} className="text-slate-500 mr-1" />
-//           {['All', 'Paper', 'Claim'].map(filter => (
-//             <button
-//               key={filter}
-//               onClick={() => setActiveFilter(filter as any)}
-//               className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-//                 activeFilter === filter 
-//                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 border border-blue-500' 
-//                 : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
-//               }`}
-//             >
-//               {filter}
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-
-//       <button 
-//         onClick={() => {
-//           fgRef.current?.zoomToFit(400);
-//           fgRef.current?.d3ReheatSimulation();
-//         }}
-//         className="absolute top-6 right-6 z-20 p-3 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 text-slate-300 rounded-2xl hover:bg-slate-800 hover:text-white hover:border-blue-500/50 transition-all shadow-xl active:scale-95"
-//         title="Reheat Simulation & Fit"
-//       >
-//         <RefreshCw size={18} />
-//       </button>
-
-//       <ForceGraph2D
-//         ref={fgRef}
-//         graphData={data}
-//         nodeLabel={(node: any) => `${node.label}: ${node.name}`}
-//         nodeRelSize={6}
-        
-//         nodeVisibility={(node: any) => activeFilter === 'All' || node.label === activeFilter}
-//         linkVisibility={(link: any) => {
-//           if (activeFilter === 'All') return true;
-//           const sourceVisible = link.source.label === activeFilter || data.nodes.find((n:any) => n.id === link.source)?.label === activeFilter;
-//           const targetVisible = link.target.label === activeFilter || data.nodes.find((n:any) => n.id === link.target)?.label === activeFilter;
-//           return sourceVisible && targetVisible;
-//         }}
-
-//         onNodeHover={handleNodeHover}
-//         onLinkHover={handleLinkHover}
-        
-//         onNodeDragEnd={node => {
-//           node.fx = node.x;
-//           node.fy = node.y;
-//         }}
-        
-//         onNodeRightClick={node => {
-//           node.fx = null;
-//           node.fy = null;
-//         }}
-
-//         // دالة الـ Click المدمجة
-//         onNodeClick={handleNodeClick}
-
-//         nodeCanvasObject={(node: any, ctx, globalScale) => {
-//           const isHighlight = highlightNodes.has(node);
-//           const isHover = node === hoverNode;
-          
-//           const opacity = highlightNodes.size === 0 ? 1 : isHighlight ? 1 : 0.1;
-//           const label = node.name;
-//           // تكبير الخط شوية عشان يبقى مقروء لما يظهر
-//           const fontSize = (isHover ? 16 : 12) / globalScale;
-          
-//           ctx.font = `${isHover ? '900' : '600'} ${fontSize}px Inter`;
-          
-//           const baseColor = node.label === 'Paper' ? '59, 130, 246' : '16, 185, 129';
-//           ctx.fillStyle = `rgba(${baseColor}, ${opacity})`;
-          
-//           // 1. رسم الدائرة (هتترسم دايماً)
-//           ctx.beginPath();
-//           ctx.arc(node.x, node.y, isHover ? 8 : 5, 0, 2 * Math.PI, false);
-//           ctx.fill();
-          
-//           if (isHighlight) {
-//             ctx.strokeStyle = `rgba(255, 255, 255, ${isHover ? 0.8 : 0.3})`;
-//             ctx.lineWidth = 1.5 / globalScale;
-//             ctx.stroke();
-//           }
-          
-//           // 2. 🔴 السحر هنا: شرط إظهار النص 🔴
-//           // هنظهر النص في حالتين:
-//           // - لو إنت عامل Hover على النقطة دي
-//           // - أو لو إنت عامل Hover على نقطة تانية، ودي واحدة من جيرانها (عشان تقرأ العلاقة)
-//           const shouldShowText = isHover || (highlightNodes.size > 0 && isHighlight);
-
-//           // 💡 لو عايز تخلي أسامي الأبحاث (Papers) بس اللي ظاهرة دايماً، والـ Claims تختفي استخدم السطر ده بدل اللي فوق:
-//           // const shouldShowText = isHover || (highlightNodes.size > 0 && isHighlight) || (highlightNodes.size === 0 && node.label === 'Paper');
-
-//           if (shouldShowText) {
-//             ctx.textAlign = 'center';
-//             ctx.textBaseline = 'middle';
-//             // لون أبيض فاقع للنقطة الأساسية، ولون باهت شوية للجيران
-//             ctx.fillStyle = isHover ? 'rgba(255, 255, 255, 1)' : `rgba(203, 213, 225, 0.9)`;
-//             ctx.fillText(label, node.x, node.y + (isHover ? 16 : 12));
-//           }
-//         }}
-
-//         linkColor={(link: any) => highlightLinks.has(link) ? 'rgba(148, 163, 184, 0.8)' : 'rgba(51, 65, 85, 0.3)'}
-//         linkWidth={(link: any) => highlightLinks.has(link) ? 2 : 1}
-//         linkDirectionalParticles={(link: any) => highlightLinks.has(link) ? 4 : 0}
-//         linkDirectionalParticleWidth={3}
-//         linkDirectionalParticleSpeed={0.01}
-//       />
-
-//       {/* Interaction Guide */}
-//       <div className="absolute bottom-6 left-6 z-10 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-4 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-//          <p className="text-[10px] text-slate-400 mb-3 font-black uppercase tracking-widest flex items-center gap-2">
-//             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-//             Graph Controls
-//          </p>
-//          <ul className="text-[11px] text-slate-300 space-y-2 font-medium">
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono text-[9px]">Hover</kbd> Highlight connections</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono text-[9px]">Click</kbd> Zoom to entity</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-blue-600/20 border border-blue-500/50 px-1.5 py-0.5 rounded text-blue-400 font-mono text-[9px]">2x Click</kbd> Ask AI Agent</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono text-[9px]">Drag</kbd> Pin node position</li>
-//          </ul>
-//       </div>
-
-//     </div>
-//   );
-// };
-
-
-// import React, { useEffect, useState, useRef, useCallback } from 'react';
-// import ForceGraph2D from 'react-force-graph-2d';
-// import api from '../api/axios';
-// import { Loader2, RefreshCw, Search, Filter } from 'lucide-react';
-
-// export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void }) => {
-//   const [data, setData] = useState({ nodes: [], links: [] });
-//   const [loading, setLoading] = useState(true);
-//   const fgRef = useRef<any>();
-  
-//   const lastClickTime = useRef(0);
-
-//   const [highlightNodes, setHighlightNodes] = useState(new Set());
-//   const [highlightLinks, setHighlightLinks] = useState(new Set());
-//   const [hoverNode, setHoverNode] = useState<any>(null);
-  
-//   const [searchQuery, setSearchQuery] = useState('');
-//   const [activeFilter, setActiveFilter] = useState<'All' | 'Paper' | 'Claim'>('All');
-
-//   useEffect(() => {
-//     api.get('/graph/data')
-//       .then(res => {
-//         setData(res.data);
-//         setLoading(false);
-//       })
-//       .catch(() => setLoading(false));
-//   }, []);
-
-//   // 🪄 تظبيط فيزياء الجراف (عشان يفرش زي أوبسيديان وميكلكعش)
-//   useEffect(() => {
-//     if (fgRef.current) {
-//       // زيادة قوة التنافر بين النقط
-//       fgRef.current.d3Force('charge').strength(-250);
-//       // تطويل المسافة بين النقط المربوطة
-//       fgRef.current.d3Force('link').distance(60);
-//     }
-//   }, [data]);
-
-//   const handleNodeHover = useCallback((node: any) => {
-//     highlightNodes.clear();
-//     highlightLinks.clear();
-    
-//     if (node) {
-//       highlightNodes.add(node);
-//       data.links.forEach((link: any) => {
-//         if (link.source === node || link.target === node || link.source.id === node.id || link.target.id === node.id) {
-//           highlightLinks.add(link);
-//           highlightNodes.add(link.source === node ? link.target : link.source);
-//         }
-//       });
-//     }
-
-//     setHoverNode(node || null);
-//     setHighlightNodes(new Set(highlightNodes));
-//     setHighlightLinks(new Set(highlightLinks));
-//   }, [data]);
-
-//   const handleLinkHover = useCallback((link: any) => {
-//     highlightNodes.clear();
-//     highlightLinks.clear();
-
-//     if (link) {
-//       highlightLinks.add(link);
-//       highlightNodes.add(link.source);
-//       highlightNodes.add(link.target);
-//     }
-
-//     setHighlightNodes(new Set(highlightNodes));
-//     setHighlightLinks(new Set(highlightLinks));
-//   }, []);
-
-//   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const query = e.target.value;
-//     setSearchQuery(query);
-    
-//     if (query.trim() === '') {
-//       setHoverNode(null);
-//       highlightNodes.clear();
-//       setHighlightNodes(new Set());
-//       return;
-//     }
-
-//     const foundNode = data.nodes.find((n: any) => 
-//       n.name?.toLowerCase().includes(query.toLowerCase())
-//     );
-
-//     if (foundNode) {
-//       fgRef.current?.centerAt((foundNode as any).x, (foundNode as any).y, 1000);
-//       fgRef.current?.zoom(8, 1000);
-//       handleNodeHover(foundNode);
-//     }
-//   };
-
-//   const handleNodeClick = useCallback((node: any) => {
-//     const now = Date.now();
-//     if (now - lastClickTime.current < 300) {
-//       if (onAskAI) onAskAI(node.name);
-//     } else {
-//       fgRef.current?.centerAt(node.x, node.y, 1000);
-//       fgRef.current?.zoom(6, 1000);
-//     }
-//     lastClickTime.current = now;
-//   }, [onAskAI]);
-
-//   if (loading) return (
-//     <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4">
-//       <Loader2 className="animate-spin" size={40} />
-//       <p className="text-sm font-mono uppercase tracking-widest">Constructing Knowledge Graph...</p>
-//     </div>
-//   );
-
-//   return (
-//     <div className="w-full h-full bg-[#0b0f19] relative group overflow-hidden">
-      
-//       {/* Control Panel */}
-//       <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
-//         <div className="bg-[#0f172a]/80 backdrop-blur-md border border-slate-700/50 p-2.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all focus-within:border-blue-500/50">
-//           <Search size={16} className="text-slate-400 ml-1" />
-//           <input 
-//             type="text" 
-//             placeholder="Search entities or papers..." 
-//             value={searchQuery}
-//             onChange={handleSearch}
-//             className="bg-transparent border-none text-[13px] text-white placeholder-slate-500 focus:outline-none w-56 pr-2 font-medium"
-//           />
-//         </div>
-
-//         <div className="flex items-center gap-2">
-//           <Filter size={14} className="text-slate-500 mr-1" />
-//           {['All', 'Paper', 'Claim'].map(filter => (
-//             <button
-//               key={filter}
-//               onClick={() => setActiveFilter(filter as any)}
-//               className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-//                 activeFilter === filter 
-//                 ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border border-indigo-500' 
-//                 : 'bg-slate-800/60 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
-//               }`}
-//             >
-//               {filter}
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-
-//       <button 
-//         onClick={() => {
-//           fgRef.current?.zoomToFit(400);
-//           fgRef.current?.d3ReheatSimulation();
-//         }}
-//         className="absolute top-6 right-6 z-20 p-3 bg-[#0f172a]/80 backdrop-blur-md border border-slate-700/50 text-slate-300 rounded-2xl hover:bg-slate-800 hover:text-white transition-all shadow-xl active:scale-95"
-//         title="Reheat Simulation & Fit"
-//       >
-//         <RefreshCw size={18} />
-//       </button>
-
-//       <ForceGraph2D
-//         ref={fgRef}
-//         graphData={data}
-//         nodeLabel={() => ''} // قفلنا الـ Tooltip العادي عشان عملنا واحد احترافي
-//         nodeRelSize={6}
-        
-//         nodeVisibility={(node: any) => activeFilter === 'All' || node.label === activeFilter}
-//         linkVisibility={(link: any) => {
-//           if (activeFilter === 'All') return true;
-//           const sourceVisible = link.source.label === activeFilter || data.nodes.find((n:any) => n.id === link.source)?.label === activeFilter;
-//           const targetVisible = link.target.label === activeFilter || data.nodes.find((n:any) => n.id === link.target)?.label === activeFilter;
-//           return sourceVisible && targetVisible;
-//         }}
-
-//         onNodeHover={handleNodeHover}
-//         onLinkHover={handleLinkHover}
-//         onNodeDragEnd={node => { node.fx = node.x; node.fy = node.y; }}
-//         onNodeRightClick={node => { node.fx = null; node.fy = null; }}
-//         onNodeClick={handleNodeClick}
-
-//         // --- 🎨 Obsidian Style Canvas Rendering ---
-//         nodeCanvasObject={(node: any, ctx, globalScale) => {
-//           const isHighlight = highlightNodes.has(node);
-//           const isHover = node === hoverNode;
-          
-//           // درجة الشفافية (عتمة كاملة للي مش متظلل لو في حاجة تانية متظللة)
-//           const opacity = highlightNodes.size === 0 ? 0.8 : isHighlight ? 1 : 0.1;
-          
-//           // حجم العقدة (الـ Papers كبيرة، الـ Claims صغيرة)
-//           const isPaper = node.label === 'Paper';
-//           const nodeR = isHover ? 8 : (isPaper ? 5 : 2.5);
-          
-//           // ألوان أوبسيديان (بنفسجي للـ Papers، رمادي مزرق للـ Claims)
-//           const colorRGB = isPaper ? '129, 140, 248' : '148, 163, 184'; // Indigo-400 & Slate-400
-          
-//           // --- رسم النقطة والتوهج (Glow) ---
-//           ctx.beginPath();
-//           ctx.arc(node.x, node.y, nodeR, 0, 2 * Math.PI, false);
-//           ctx.fillStyle = `rgba(${colorRGB}, ${opacity})`;
-          
-//           if (isHighlight) {
-//             ctx.shadowBlur = isHover ? 15 : 8;
-//             ctx.shadowColor = `rgba(${colorRGB}, 0.8)`;
-//           } else {
-//             ctx.shadowBlur = 0; // مهم جداً للأداء
-//           }
-          
-//           ctx.fill();
-//           ctx.shadowBlur = 0; // إعادة ضبط للرسم الجاي
-
-//           // --- رسم النص بخلفية شفافة (Obsidian Labels) ---
-//           const shouldShowText = isHover || (highlightNodes.size > 0 && isHighlight);
-
-//           if (shouldShowText) {
-//             const label = node.name;
-//             const fontSize = (isHover ? 14 : 10) / globalScale;
-//             ctx.font = `${isHover ? '600' : '500'} ${fontSize}px Inter, sans-serif`;
-            
-//             // حساب حجم خلفية النص
-//             const textWidth = ctx.measureText(label).width;
-//             const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4);
-
-//             // رسم خلفية النص (عشان الخطوط متقطعش الكلمة)
-//             ctx.fillStyle = `rgba(11, 15, 25, 0.85)`; // لون خلفية مقارب للوحة
-//             ctx.fillRect(
-//               node.x - bckgDimensions[0] / 2, 
-//               node.y + nodeR + 2, 
-//               bckgDimensions[0], 
-//               bckgDimensions[1]
-//             );
-
-//             // رسم الكلمة نفسها
-//             ctx.textAlign = 'center';
-//             ctx.textBaseline = 'middle';
-//             ctx.fillStyle = isHover ? '#ffffff' : `rgba(226, 232, 240, 0.9)`;
-//             ctx.fillText(label, node.x, node.y + nodeR + 2 + bckgDimensions[1] / 2);
-//           }
-//         }}
-
-//         // --- 🔗 خطوط رفيعة وأنيقة ---
-//         linkColor={(link: any) => highlightLinks.has(link) ? 'rgba(129, 140, 248, 0.6)' : 'rgba(71, 85, 105, 0.15)'}
-//         linkWidth={(link: any) => highlightLinks.has(link) ? 1.5 : 0.5}
-        
-//         // جزيئات الطاقة شغالة للخطوط المنورة بس
-//         linkDirectionalParticles={(link: any) => highlightLinks.has(link) ? 3 : 0}
-//         linkDirectionalParticleWidth={2}
-//         linkDirectionalParticleSpeed={0.008}
-//       />
-
-//       <div className="absolute bottom-6 left-6 z-10 bg-[#0f172a]/80 backdrop-blur-md border border-slate-700/50 p-4 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-//          <p className="text-[10px] text-slate-400 mb-3 font-black uppercase tracking-widest flex items-center gap-2">
-//             <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.8)]"></span>
-//             Graph Controls
-//          </p>
-//          <ul className="text-[11px] text-slate-300 space-y-2 font-medium">
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-400 font-mono text-[9px]">Hover</kbd> Highlight connections</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-400 font-mono text-[9px]">Click</kbd> Zoom to entity</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-indigo-600/20 border border-indigo-500/50 px-1.5 py-0.5 rounded text-indigo-300 font-mono text-[9px]">2x Click</kbd> Ask AI Agent</li>
-//             <li className="flex items-center gap-2"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded text-indigo-400 font-mono text-[9px]">Drag</kbd> Pin node position</li>
-//          </ul>
-//       </div>
-
-//     </div>
-//   );
-// };
-
-
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import api from '../api/axios';
-import { Loader2, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
+import {
+  Loader2, RefreshCw, Search, SlidersHorizontal,
+  Maximize2, Download, Focus, X, Activity,
+  Network, Eye, EyeOff, Zap, FileText, Tag,
+  GitBranch, Hash
+} from 'lucide-react';
+
+type Theme = 'dark' | 'light';
 
 // ═══════════════════════════════════════════════════
-//  Color palette — Cosmic Neon
+//  Theme-aware palettes
 // ═══════════════════════════════════════════════════
-const COLORS = {
-  paper:   { r: 0,   g: 230, b: 255 },
-  claim:   { r: 255, g: 190, b: 60  },
-  bg:      '#04070f',
-  dimLink: 'rgba(255,255,255,0.06)',
-  hlLink:  'rgba(0,230,255,0.55)',
+const PALETTES = {
+  dark: {
+    paper:    { r: 0,   g: 230, b: 255 },
+    claim:    { r: 255, g: 190, b: 60  },
+    claimAlt: { r: 255, g: 130, b: 200 },
+    bg:       '#04070f',
+    panelBg:  'rgba(4,7,15,0.82)',
+    panelBdr: 'rgba(0,230,255,0.15)',
+    text:     'rgba(220,235,250,0.9)',
+    textDim:  'rgba(148,163,184,0.7)',
+    dimLink:  'rgba(255,255,255,0.06)',
+    hlLink:   'rgba(0,230,255,0.55)',
+    labelBg:  'rgba(4,7,15,0.88)',
+  },
+  light: {
+    paper:    { r: 37,  g: 99,  b: 235 },
+    claim:    { r: 234, g: 88,  b: 12  },
+    claimAlt: { r: 219, g: 39,  b: 119 },
+    bg:       '#f8fafc',
+    panelBg:  'rgba(255,255,255,0.92)',
+    panelBdr: 'rgba(37,99,235,0.18)',
+    text:     'rgba(15,23,42,0.92)',
+    textDim:  'rgba(71,85,105,0.85)',
+    dimLink:  'rgba(15,23,42,0.08)',
+    hlLink:   'rgba(37,99,235,0.55)',
+    labelBg:  'rgba(255,255,255,0.95)',
+  },
 };
 
 const rgb = (c: { r: number; g: number; b: number }, a = 1) =>
   `rgba(${c.r},${c.g},${c.b},${a})`;
 
-// Manual roundRect – avoids TS lib version issues
 function pillRect(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number, r: number
@@ -554,8 +69,11 @@ function paintNode(
   globalScale: number,
   isHighlight: boolean,
   isHover: boolean,
+  isFocused: boolean,
   opacity: number,
-  t: number
+  t: number,
+  COLORS: typeof PALETTES.dark,
+  degree: number = 1
 ) {
   const isPaper = node.label === 'Paper';
   const col = isPaper ? COLORS.paper : COLORS.claim;
@@ -568,12 +86,12 @@ function paintNode(
     return;
   }
 
-  const baseR = isPaper ? 5.5 : 3.2;
+  const degreeBoost = Math.min(1 + Math.log(degree + 1) * 0.25, 2.2);
+  const baseR = (isPaper ? 5.5 : 3.2) * degreeBoost;
   const pulse = isHover ? 1 + Math.sin(t * 3.5) * 0.18 : 1;
-  const nodeR  = (isHover ? baseR * 1.55 : baseR) * pulse;
+  const nodeR = (isHover ? baseR * 1.55 : baseR) * pulse;
 
-  // Far ambient glow
-  if (isHighlight) {
+  if (isHighlight || isFocused) {
     const g1 = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeR * 7);
     g1.addColorStop(0, rgb(col, 0.12 * opacity));
     g1.addColorStop(1, rgb(col, 0));
@@ -583,7 +101,6 @@ function paintNode(
     ctx.fill();
   }
 
-  // Mid corona
   const g2 = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeR * 3);
   g2.addColorStop(0, rgb(col, (isHighlight ? 0.35 : 0.1) * opacity));
   g2.addColorStop(1, rgb(col, 0));
@@ -592,7 +109,6 @@ function paintNode(
   ctx.fillStyle = g2;
   ctx.fill();
 
-  // Core
   const g3 = ctx.createRadialGradient(
     node.x - nodeR * 0.25, node.y - nodeR * 0.25, nodeR * 0.05,
     node.x, node.y, nodeR
@@ -605,7 +121,6 @@ function paintNode(
   ctx.fillStyle = g3;
   ctx.fill();
 
-  // Rim
   if (isHighlight) {
     ctx.beginPath();
     ctx.arc(node.x, node.y, nodeR, 0, Math.PI * 2);
@@ -614,7 +129,17 @@ function paintNode(
     ctx.stroke();
   }
 
-  // Pulsing ring (hover)
+  if (isFocused) {
+    const fp = (Math.sin(t * 2) + 1) / 2;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, nodeR + 6 + fp * 2, 0, Math.PI * 2);
+    ctx.strokeStyle = rgb(col, 0.9);
+    ctx.lineWidth = 1.5 / globalScale;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
   if (isHover) {
     const rp = (Math.sin(t * 4) + 1) / 2;
     const r1 = nodeR + 3.5 + rp * 4;
@@ -632,7 +157,6 @@ function paintNode(
     ctx.stroke();
   }
 
-  // Rotating dashed orbit (Paper + highlighted)
   if (isPaper && isHighlight) {
     ctx.save();
     ctx.translate(node.x, node.y);
@@ -647,8 +171,7 @@ function paintNode(
     ctx.restore();
   }
 
-  // Label
-  if (isHover || isHighlight) {
+  if (isHover || isHighlight || isFocused) {
     const label = String(node.name ?? '');
     const fontSize = Math.max((isHover ? 12 : 8.5) / globalScale, 1.5);
     ctx.font = `${isHover ? '700' : '500'} ${fontSize}px "DM Mono","Space Mono",monospace`;
@@ -662,7 +185,7 @@ function paintNode(
     const bgY  = node.y + nodeR + 4 / globalScale;
 
     pillRect(ctx, bgX, bgY, bgW, bgH, bgH / 2);
-    ctx.fillStyle = 'rgba(4,7,15,0.88)';
+    ctx.fillStyle = COLORS.labelBg;
     ctx.fill();
     ctx.strokeStyle = rgb(col, isHover ? 0.55 : 0.2);
     ctx.lineWidth = 0.5 / globalScale;
@@ -670,30 +193,80 @@ function paintNode(
 
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle    = isHover ? rgb(col, 1) : 'rgba(210,225,240,0.88)';
+    ctx.fillStyle    = isHover ? rgb(col, 1) : COLORS.text;
     ctx.fillText(label, node.x, bgY + bgH / 2);
   }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void }) => {
-  const [data, setData]     = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
+interface GraphViewProps {
+  onAskAI?: (nodeName: string) => void;
+  theme?: Theme;
+}
+
+export const GraphView: React.FC<GraphViewProps> = ({ onAskAI, theme = 'dark' }) => {
+  const COLORS = PALETTES[theme];
+  const isDark = theme === 'dark';
+
+  const [data, setData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(true);
   const fgRef = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
   const lastClickTime = useRef(0);
 
   const [highlightNodes, setHighlightNodes] = useState(new Set<any>());
-  const [highlightLinks, setHighlightLinks]  = useState(new Set<any>());
+  const [highlightLinks, setHighlightLinks] = useState(new Set<any>());
   const [hoverNode, setHoverNode] = useState<any>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const [searchQuery, setSearchQuery]     = useState('');
-  const [activeFilter, setActiveFilter]   = useState<'All' | 'Paper' | 'Claim'>('All');
+  const [focusedNode, setFocusedNode] = useState<any>(null);
 
-  useEffect(() => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'All' | 'Paper' | 'Claim'>('All');
+  const [minDegree, setMinDegree] = useState(0);
+
+  const [showLegend, setShowLegend] = useState(true);
+  const [showStats, setShowStats] = useState(true);
+
+  // ─── Compute node degrees ──────────────────────────────────────────
+  const nodeDegrees = useMemo(() => {
+    const map = new Map<string, number>();
+    data.links.forEach((link: any) => {
+      const sId = typeof link.source === 'object' ? link.source.id : link.source;
+      const tId = typeof link.target === 'object' ? link.target.id : link.target;
+      map.set(sId, (map.get(sId) ?? 0) + 1);
+      map.set(tId, (map.get(tId) ?? 0) + 1);
+    });
+    return map;
+  }, [data]);
+
+  const maxDegree = useMemo(
+    () => Math.max(1, ...Array.from(nodeDegrees.values())),
+    [nodeDegrees]
+  );
+
+  // ─── Stats ─────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const papers = data.nodes.filter((n: any) => n.label === 'Paper').length;
+    const claims = data.nodes.filter((n: any) => n.label === 'Claim').length;
+    const total  = data.nodes.length;
+    const links  = data.links.length;
+    const density = total > 1
+      ? ((2 * links) / (total * (total - 1)) * 100).toFixed(2)
+      : '0';
+    const avgDegree = total ? (Array.from(nodeDegrees.values()).reduce((a, b) => a + b, 0) / total).toFixed(1) : '0';
+    return { papers, claims, total, links, density, avgDegree };
+  }, [data, nodeDegrees]);
+
+  // ─── Fetch ─────────────────────────────────────────────────────────
+  const fetchData = useCallback(() => {
+    setLoading(true);
     api.get('/graph/data')
       .then(res => { setData(res.data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     if (fgRef.current) {
@@ -702,7 +275,29 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
     }
   }, [data]);
 
+  // ─── Keyboard shortcuts ────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      if (e.key === 'f' || e.key === 'F') fgRef.current?.zoomToFit(500);
+      if (e.key === 'r' || e.key === 'R') fgRef.current?.d3ReheatSimulation();
+      if (e.key === 'Escape') {
+        setFocusedNode(null);
+        setHighlightNodes(new Set());
+        setHighlightLinks(new Set());
+        setSearchQuery('');
+      }
+      if (e.key === 'l' || e.key === 'L') setShowLegend(s => !s);
+      if (e.key === 's' || e.key === 'S') setShowStats(s => !s);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // ─── Hover handlers ────────────────────────────────────────────────
   const handleNodeHover = useCallback((node: any) => {
+    if (focusedNode) return;
+
     const hn = new Set<any>();
     const hl = new Set<any>();
     if (node) {
@@ -718,16 +313,24 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
     setHoverNode(node ?? null);
     setHighlightNodes(hn);
     setHighlightLinks(hl);
-  }, [data]);
+  }, [data, focusedNode]);
 
   const handleLinkHover = useCallback((link: any) => {
+    if (focusedNode) return;
     const hn = new Set<any>();
     const hl = new Set<any>();
     if (link) { hl.add(link); hn.add(link.source); hn.add(link.target); }
     setHighlightNodes(hn);
     setHighlightLinks(hl);
-  }, []);
+  }, [focusedNode]);
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setHoverPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  // ─── Search ────────────────────────────────────────────────────────
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
     setSearchQuery(q);
@@ -740,59 +343,202 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
     }
   };
 
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return data.nodes
+      .filter((n: any) => n.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 6);
+  }, [searchQuery, data.nodes]);
+
+  // ─── Click handlers ────────────────────────────────────────────────
   const handleNodeClick = useCallback((node: any) => {
     const now = Date.now();
     if (now - lastClickTime.current < 300) {
+      setFocusedNode(node);
+      const hn = new Set<any>([node]);
+      const hl = new Set<any>();
+      data.links.forEach((link: any) => {
+        const s = link.source, tg = link.target;
+        if (s === node || tg === node || s?.id === node.id || tg?.id === node.id) {
+          hl.add(link);
+          hn.add((s === node || s?.id === node.id) ? tg : s);
+        }
+      });
+      setHighlightNodes(hn);
+      setHighlightLinks(hl);
       onAskAI?.(node.name);
     } else {
       fgRef.current?.centerAt(node.x, node.y, 800);
       fgRef.current?.zoom(7, 800);
     }
     lastClickTime.current = now;
-  }, [onAskAI]);
+  }, [onAskAI, data]);
 
+  const handleBackgroundClick = useCallback(() => {
+    if (focusedNode) {
+      setFocusedNode(null);
+      setHighlightNodes(new Set());
+      setHighlightLinks(new Set());
+    }
+  }, [focusedNode]);
+
+  // ─── Export PNG ────────────────────────────────────────────────────
+  const handleExport = () => {
+    const canvas = containerRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `documind-graph-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  // ─── Loading ───────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-full gap-5"
          style={{ background: COLORS.bg }}>
       <div className="relative w-12 h-12">
-        <div className="absolute inset-0 rounded-full border-2 border-cyan-400/20 border-t-cyan-400 animate-spin" />
-        <div className="absolute inset-0 rounded-full border-2 border-transparent border-b-amber-400/40 animate-spin"
-             style={{ animationDuration: '1.8s', animationDirection: 'reverse' }} />
+        <div className="absolute inset-0 rounded-full border-2 animate-spin"
+             style={{
+               borderColor: rgb(COLORS.paper, 0.2),
+               borderTopColor: rgb(COLORS.paper, 1),
+             }} />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+             style={{
+               borderBottomColor: rgb(COLORS.claim, 0.4),
+               animationDuration: '1.8s',
+               animationDirection: 'reverse',
+             }} />
       </div>
-      <p className="text-[11px] tracking-[0.3em] uppercase font-mono text-cyan-400/60">
+      <p className="text-[11px] tracking-[0.3em] uppercase font-mono"
+         style={{ color: rgb(COLORS.paper, 0.6) }}>
         Mapping knowledge graph…
       </p>
     </div>
   );
 
-  return (
-    <div className="w-full h-full relative overflow-hidden group"
-         style={{ background: COLORS.bg }}>
+  const panelStyle: React.CSSProperties = {
+    background: COLORS.panelBg,
+    border: `1px solid ${COLORS.panelBdr}`,
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+  };
 
-      {/* Search + Filter */}
+  const hoveredDegree = hoverNode ? (nodeDegrees.get(hoverNode.id) ?? 0) : 0;
+
+  // ─── Visibility predicates ─────────────────────────────────────────
+  const nodeIsVisible = (node: any) => {
+    if (activeFilter !== 'All' && node.label !== activeFilter) return false;
+    const deg = nodeDegrees.get(node.id) ?? 0;
+    if (deg < minDegree) return false;
+    return true;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="w-full h-full relative overflow-hidden group"
+      style={{ background: COLORS.bg }}
+    >
+      {/* Inject custom slider styles */}
+      <style>{`
+        input[type=range]::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: ${rgb(COLORS.paper, 1)};
+          box-shadow: 0 0 8px ${rgb(COLORS.paper, 0.6)};
+          cursor: pointer;
+          border: 2px solid ${isDark ? '#04070f' : '#fff'};
+        }
+        input[type=range]::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: ${rgb(COLORS.paper, 1)};
+          box-shadow: 0 0 8px ${rgb(COLORS.paper, 0.6)};
+          cursor: pointer;
+          border: 2px solid ${isDark ? '#04070f' : '#fff'};
+        }
+        @keyframes graphPulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+
+      {/* ═══ TOP-LEFT: Search + Filters ═══ */}
       <div className="absolute top-5 left-5 z-20 flex flex-col gap-3">
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-all duration-300
-                        focus-within:shadow-[0_0_20px_rgba(0,230,255,0.2)]"
-             style={{ background: 'rgba(4,7,15,0.75)',
-                      border: '1px solid rgba(0,230,255,0.15)',
-                      backdropFilter: 'blur(16px)' }}>
-          <Search size={14} style={{ color: 'rgba(0,230,255,0.5)', flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search entities or papers…"
-            value={searchQuery}
-            onChange={handleSearch}
-            className="bg-transparent border-none text-[12.5px] placeholder-slate-600
-                       focus:outline-none w-52 font-mono"
-            style={{ color: 'rgba(0,230,255,0.9)' }}
-          />
+        {/* Search */}
+        <div className="relative">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-all duration-300"
+               style={{
+                 ...panelStyle,
+                 boxShadow: searchQuery ? `0 0 20px ${rgb(COLORS.paper, 0.2)}` : undefined,
+               }}>
+            <Search size={14} style={{ color: rgb(COLORS.paper, 0.6), flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search entities or papers…"
+              value={searchQuery}
+              onChange={handleSearch}
+              className="bg-transparent border-none text-[12.5px] focus:outline-none w-52 font-mono"
+              style={{ color: rgb(COLORS.paper, 0.95) }}
+            />
+            {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); setHighlightNodes(new Set()); }}
+                      className="opacity-60 hover:opacity-100 transition-opacity">
+                <X size={12} style={{ color: COLORS.textDim }} />
+              </button>
+            )}
+          </div>
+
+          {/* Search dropdown */}
+          {searchResults.length > 1 && (
+            <div className="absolute top-full mt-2 left-0 right-0 rounded-xl overflow-hidden z-30"
+                 style={panelStyle}>
+              {searchResults.map((n: any, i) => {
+                const isPaper = n.label === 'Paper';
+                const c = isPaper ? COLORS.paper : COLORS.claim;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      fgRef.current?.centerAt(n.x, n.y, 900);
+                      fgRef.current?.zoom(9, 900);
+                      handleNodeHover(n);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 transition-colors text-left
+                               hover:bg-opacity-80"
+                    style={{
+                      background: 'transparent',
+                      borderBottom: i < searchResults.length - 1
+                        ? `1px solid ${COLORS.dimLink}` : 'none',
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ background: rgb(c, 1), boxShadow: `0 0 6px ${rgb(c, 0.8)}` }} />
+                    <span className="text-[10.5px] font-mono truncate flex-1"
+                          style={{ color: COLORS.text }}>
+                      {n.name}
+                    </span>
+                    <span className="text-[8px] uppercase font-bold tracking-wider"
+                          style={{ color: rgb(c, 0.7) }}>
+                      {n.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
+        {/* Type Filter */}
         <div className="flex items-center gap-2">
-          <SlidersHorizontal size={12} className="text-slate-600" />
+          <SlidersHorizontal size={12} style={{ color: COLORS.textDim }} />
           {(['All', 'Paper', 'Claim'] as const).map(f => {
             const active = activeFilter === f;
-            const accent = f === 'Claim' ? '#ffbe3c' : '#00e6ff';
+            const accent = f === 'Claim' ? rgb(COLORS.claim, 1) : rgb(COLORS.paper, 1);
             return (
               <button
                 key={f}
@@ -800,10 +546,10 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
                 className="px-3.5 py-1 rounded-xl text-[9.5px] font-black uppercase
                            tracking-widest transition-all duration-200"
                 style={{
-                  background: active ? `${accent}18` : 'rgba(4,7,15,0.6)',
-                  border: `1px solid ${active ? accent + '55' : 'rgba(255,255,255,0.07)'}`,
-                  color:  active ? accent : 'rgba(148,163,184,0.7)',
-                  boxShadow: active ? `0 0 14px ${accent}30` : 'none',
+                  background: active ? accent + '22' : COLORS.panelBg,
+                  border: `1px solid ${active ? accent + '88' : COLORS.panelBdr}`,
+                  color:  active ? accent : COLORS.textDim,
+                  boxShadow: active ? `0 0 14px ${accent}44` : 'none',
                   backdropFilter: 'blur(12px)',
                 }}
               >
@@ -812,23 +558,193 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
             );
           })}
         </div>
+
+        {/* Connection Strength Slider */}
+        <div className="flex items-center gap-3 px-3 py-2 rounded-2xl" style={panelStyle}>
+          <Network size={12} style={{ color: rgb(COLORS.paper, 0.7) }} />
+          <div className="flex flex-col gap-1 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[8.5px] uppercase tracking-widest font-mono font-black"
+                    style={{ color: COLORS.textDim }}>
+                Min Connections
+              </span>
+              <span className="text-[10px] font-mono font-bold"
+                    style={{ color: rgb(COLORS.paper, 0.95) }}>
+                {minDegree}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.min(maxDegree, 20)}
+              value={minDegree}
+              onChange={e => setMinDegree(Number(e.target.value))}
+              className="w-44 h-1 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, ${rgb(COLORS.paper, 0.7)} 0%, ${rgb(COLORS.paper, 0.7)} ${(minDegree / Math.min(maxDegree, 20)) * 100}%, ${COLORS.dimLink} ${(minDegree / Math.min(maxDegree, 20)) * 100}%, ${COLORS.dimLink} 100%)`,
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Reheat */}
-      <button
-        onClick={() => { fgRef.current?.zoomToFit(500); fgRef.current?.d3ReheatSimulation(); }}
-        className="absolute top-5 right-5 z-20 p-2.5 rounded-xl transition-all duration-200
-                   active:scale-95 hover:shadow-[0_0_16px_rgba(0,230,255,0.3)]"
-        style={{ background: 'rgba(4,7,15,0.75)',
-                 border: '1px solid rgba(0,230,255,0.15)',
-                 backdropFilter: 'blur(12px)',
-                 color: 'rgba(0,230,255,0.7)' }}
-        title="Reheat & fit"
-      >
-        <RefreshCw size={16} />
-      </button>
+      {/* ═══ TOP-RIGHT: Action Buttons ═══ */}
+      <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
+        {[
+          { Icon: Maximize2, title: 'Fit view (F)',         onClick: () => fgRef.current?.zoomToFit(500, 80) },
+          { Icon: RefreshCw, title: 'Reheat simulation (R)', onClick: () => fgRef.current?.d3ReheatSimulation() },
+          { Icon: Download,  title: 'Export PNG',            onClick: handleExport },
+          { Icon: showLegend ? Eye : EyeOff, title: 'Toggle legend (L)', onClick: () => setShowLegend(s => !s) },
+          { Icon: Activity,  title: 'Toggle stats (S)',      onClick: () => setShowStats(s => !s) },
+        ].map(({ Icon, title, onClick }, i) => (
+          <button
+            key={i}
+            onClick={onClick}
+            title={title}
+            className="p-2.5 rounded-xl transition-all duration-200 active:scale-95"
+            style={{
+              ...panelStyle,
+              color: rgb(COLORS.paper, 0.75),
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = `0 0 16px ${rgb(COLORS.paper, 0.3)}`;
+              e.currentTarget.style.color = rgb(COLORS.paper, 1);
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = '';
+              e.currentTarget.style.color = rgb(COLORS.paper, 0.75);
+            }}
+          >
+            <Icon size={15} />
+          </button>
+        ))}
+      </div>
 
-      {/* Graph */}
+      {/* ═══ TOP-CENTER: Focus Mode banner ═══ */}
+      {focusedNode && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20
+                        flex items-center gap-3 px-4 py-2 rounded-full"
+             style={{
+               ...panelStyle,
+               border: `1px solid ${rgb(COLORS.paper, 0.45)}`,
+               boxShadow: `0 0 20px ${rgb(COLORS.paper, 0.25)}`,
+             }}>
+          <Focus size={13} style={{ color: rgb(COLORS.paper, 1) }} />
+          <span className="text-[10px] font-mono font-black uppercase tracking-widest"
+                style={{ color: rgb(COLORS.paper, 1) }}>
+            Focused:
+          </span>
+          <span className="text-[11px] font-mono font-bold truncate max-w-[280px]"
+                style={{ color: COLORS.text }}>
+            {focusedNode.name}
+          </span>
+          <button
+            onClick={handleBackgroundClick}
+            className="p-1 rounded-full hover:bg-white/10 transition-colors"
+            style={{ color: COLORS.textDim }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* ═══ Stats Panel (top-right, below buttons) ═══ */}
+      {showStats && (
+        <div className="absolute top-20 right-5 z-10 p-4 rounded-2xl w-56"
+             style={panelStyle}>
+          <p className="text-[9px] tracking-[0.25em] uppercase font-mono mb-3 flex items-center gap-2 font-black"
+             style={{ color: rgb(COLORS.paper, 0.6) }}>
+            <span className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: rgb(COLORS.paper, 1),
+                    boxShadow: `0 0 6px ${rgb(COLORS.paper, 1)}`,
+                    animation: 'graphPulse 2s ease-in-out infinite',
+                  }} />
+            Graph Metrics
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { Icon: FileText,  label: 'Papers',   value: stats.papers,    color: COLORS.paper },
+              { Icon: Tag,       label: 'Claims',   value: stats.claims,    color: COLORS.claim },
+              { Icon: GitBranch, label: 'Edges',    value: stats.links,     color: COLORS.paper },
+              { Icon: Hash,      label: 'Avg Deg.', value: stats.avgDegree, color: COLORS.claim },
+            ].map(({ Icon, label, value, color }, i) => (
+              <div key={i} className="flex flex-col gap-1.5 p-2.5 rounded-xl"
+                   style={{
+                     background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(15,23,42,0.04)',
+                     border: `1px solid ${COLORS.dimLink}`,
+                   }}>
+                <div className="flex items-center gap-1.5">
+                  <Icon size={10} style={{ color: rgb(color, 0.85) }} />
+                  <span className="text-[8px] uppercase tracking-widest font-black font-mono"
+                        style={{ color: COLORS.textDim }}>
+                    {label}
+                  </span>
+                </div>
+                <span className="text-[15px] font-black font-mono leading-none"
+                      style={{ color: rgb(color, 1) }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 pt-3 flex items-center justify-between text-[9px] font-mono"
+               style={{ borderTop: `1px solid ${COLORS.dimLink}`, color: COLORS.textDim }}>
+            <span className="uppercase tracking-widest font-black">Density</span>
+            <span className="font-bold" style={{ color: rgb(COLORS.paper, 0.95) }}>
+              {stats.density}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Hover Tooltip ═══ */}
+      {hoverNode && hoverPosition && !focusedNode && (
+        <div
+          className="absolute z-30 pointer-events-none p-3 rounded-2xl min-w-[180px] max-w-[260px]"
+          style={{
+            ...panelStyle,
+            left: Math.min(hoverPosition.x + 16, (containerRef.current?.clientWidth ?? 999) - 280),
+            top:  Math.min(hoverPosition.y + 16, (containerRef.current?.clientHeight ?? 999) - 140),
+            boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 24px ${rgb(
+              hoverNode.label === 'Paper' ? COLORS.paper : COLORS.claim, 0.18
+            )}`,
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2 pb-2"
+               style={{ borderBottom: `1px solid ${COLORS.dimLink}` }}>
+            <span className="w-2 h-2 rounded-full"
+                  style={{
+                    background: rgb(hoverNode.label === 'Paper' ? COLORS.paper : COLORS.claim, 1),
+                    boxShadow: `0 0 8px ${rgb(hoverNode.label === 'Paper' ? COLORS.paper : COLORS.claim, 0.8)}`,
+                  }} />
+            <span className="text-[8.5px] font-black uppercase tracking-[0.2em] font-mono"
+                  style={{ color: rgb(hoverNode.label === 'Paper' ? COLORS.paper : COLORS.claim, 1) }}>
+              {hoverNode.label}
+            </span>
+          </div>
+          <p className="text-[11px] font-bold leading-snug mb-2 break-words"
+             style={{ color: COLORS.text, fontFamily: 'monospace' }}>
+            {hoverNode.name}
+          </p>
+          <div className="flex items-center justify-between text-[9px] font-mono pt-2"
+               style={{ borderTop: `1px solid ${COLORS.dimLink}`, color: COLORS.textDim }}>
+            <span className="uppercase tracking-widest font-black">Connections</span>
+            <span className="font-bold" style={{ color: rgb(COLORS.paper, 0.95) }}>
+              {hoveredDegree}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5 text-[8.5px] font-mono opacity-70"
+               style={{ color: COLORS.textDim }}>
+            <Zap size={9} />
+            <span>Double-click for AI insight</span>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Graph ═══ */}
       <ForceGraph2D
         ref={fgRef}
         graphData={data}
@@ -836,13 +752,21 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
         nodeRelSize={6}
         backgroundColor={COLORS.bg}
 
-        nodeVisibility={(node: any) =>
-          activeFilter === 'All' || node.label === activeFilter}
+        nodeVisibility={nodeIsVisible}
         linkVisibility={(link: any) => {
-          if (activeFilter === 'All') return true;
-          const sl = link.source?.label ?? data.nodes.find((n: any) => n.id === link.source)?.label;
-          const tl = link.target?.label ?? data.nodes.find((n: any) => n.id === link.target)?.label;
-          return sl === activeFilter && tl === activeFilter;
+          const sNode = typeof link.source === 'object'
+            ? link.source
+            : data.nodes.find((n: any) => n.id === link.source);
+          const tNode = typeof link.target === 'object'
+            ? link.target
+            : data.nodes.find((n: any) => n.id === link.target);
+          if (!sNode || !tNode) return false;
+          if (!nodeIsVisible(sNode) || !nodeIsVisible(tNode)) return false;
+          if (focusedNode) {
+            return sNode === focusedNode || tNode === focusedNode
+                || sNode.id === focusedNode.id || tNode.id === focusedNode.id;
+          }
+          return true;
         }}
 
         onNodeHover={handleNodeHover}
@@ -850,18 +774,32 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
         onNodeDragEnd={(node: any) => { node.fx = node.x; node.fy = node.y; }}
         onNodeRightClick={(node: any) => { node.fx = null; node.fy = null; }}
         onNodeClick={handleNodeClick}
+        onBackgroundClick={handleBackgroundClick}
 
         nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-          // 🔴 السطر ده هو اللي هيحل المشكلة: بيمنع الكراش قبل ما محرك الفيزياء يشتغل
           if (node.x === undefined || node.y === undefined) return;
 
           const t = performance.now() / 1000;
+          const degree = nodeDegrees.get(node.id) ?? 1;
+
+          let opacity: number;
+          if (focusedNode) {
+            opacity = highlightNodes.has(node) ? 1 : 0.04;
+          } else if (highlightNodes.size === 0) {
+            opacity = 0.8;
+          } else {
+            opacity = highlightNodes.has(node) ? 1 : 0.06;
+          }
+
           paintNode(
             node, ctx, globalScale,
             highlightNodes.has(node),
             node === hoverNode,
-            highlightNodes.size === 0 ? 0.8 : highlightNodes.has(node) ? 1 : 0.06,
-            t
+            focusedNode === node,
+            opacity,
+            t,
+            COLORS,
+            degree
           );
         }}
 
@@ -870,61 +808,89 @@ export const GraphView = ({ onAskAI }: { onAskAI?: (nodeName: string) => void })
         linkDirectionalParticles={(link: any) => highlightLinks.has(link) ? 4 : 0}
         linkDirectionalParticleWidth={2.5}
         linkDirectionalParticleSpeed={0.007}
-        linkDirectionalParticleColor={() => 'rgba(0,230,255,0.9)'}
+        linkDirectionalParticleColor={() => rgb(COLORS.paper, 0.9)}
       />
 
-      {/* Legend */}
-      <div className="absolute bottom-5 left-5 z-10 p-4 rounded-2xl opacity-0
-                      group-hover:opacity-100 transition-opacity duration-300"
-           style={{ background: 'rgba(4,7,15,0.82)',
-                    border: '1px solid rgba(0,230,255,0.12)',
-                    backdropFilter: 'blur(16px)' }}>
-        <p className="text-[9px] tracking-[0.25em] uppercase font-mono mb-3 flex items-center gap-2"
-           style={{ color: 'rgba(0,230,255,0.5)' }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"
-                style={{ boxShadow: '0 0 6px #00e6ff' }} />
-          Graph Controls
-        </p>
-
-        <div className="flex items-center gap-4 mb-3 pb-3"
-             style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <span className="flex items-center gap-1.5 text-[10px] font-mono"
-                style={{ color: 'rgba(0,230,255,0.75)' }}>
-            <span className="w-2 h-2 rounded-full"
-                  style={{ background: '#00e6ff', boxShadow: '0 0 8px #00e6ff' }} />
-            Paper
-          </span>
-          <span className="flex items-center gap-1.5 text-[10px] font-mono"
-                style={{ color: 'rgba(255,190,60,0.75)' }}>
+      {/* ═══ BOTTOM-LEFT: Legend ═══ */}
+      {showLegend && (
+        <div className="absolute bottom-5 left-5 z-10 p-4 rounded-2xl transition-opacity duration-300"
+             style={panelStyle}>
+          <p className="text-[9px] tracking-[0.25em] uppercase font-mono mb-3 flex items-center gap-2 font-black"
+             style={{ color: rgb(COLORS.paper, 0.6) }}>
             <span className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: '#ffbe3c', boxShadow: '0 0 6px #ffbe3c' }} />
-            Claim
-          </span>
-        </div>
+                  style={{
+                    background: rgb(COLORS.paper, 1),
+                    boxShadow: `0 0 6px ${rgb(COLORS.paper, 1)}`,
+                    animation: 'graphPulse 2s ease-in-out infinite',
+                  }} />
+            Graph Controls
+          </p>
 
-        <ul className="space-y-1.5">
-          {([
-            ['Hover',    'Highlight connections'],
-            ['Click',    'Zoom to entity'],
-            ['2× Click', 'Ask AI Agent'],
-            ['Drag',     'Pin node position'],
-            ['R-click',  'Unpin node'],
-          ] as [string, string][]).map(([key, label]) => (
-            <li key={key} className="flex items-center gap-2.5 text-[10.5px]"
-                style={{ color: 'rgba(200,215,230,0.75)', fontFamily: 'monospace' }}>
-              <kbd className="px-1.5 py-0.5 rounded text-[8.5px]"
-                   style={{
-                     background: key === '2× Click' ? 'rgba(0,230,255,0.1)' : 'rgba(255,255,255,0.05)',
-                     border: `1px solid ${key === '2× Click'
-                       ? 'rgba(0,230,255,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                     color: key === '2× Click' ? '#00e6ff' : 'rgba(180,200,220,0.8)',
-                   }}>
-                {key}
-              </kbd>
-              {label}
-            </li>
-          ))}
-        </ul>
+          <div className="flex items-center gap-4 mb-3 pb-3"
+               style={{ borderBottom: `1px solid ${COLORS.dimLink}` }}>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold"
+                  style={{ color: rgb(COLORS.paper, 0.85) }}>
+              <span className="w-2 h-2 rounded-full"
+                    style={{
+                      background: rgb(COLORS.paper, 1),
+                      boxShadow: `0 0 8px ${rgb(COLORS.paper, 1)}`,
+                    }} />
+              Paper
+            </span>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold"
+                  style={{ color: rgb(COLORS.claim, 0.85) }}>
+              <span className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: rgb(COLORS.claim, 1),
+                      boxShadow: `0 0 6px ${rgb(COLORS.claim, 1)}`,
+                    }} />
+              Claim
+            </span>
+          </div>
+
+          <ul className="space-y-1.5">
+            {([
+              ['Hover',    'Highlight connections'],
+              ['Click',    'Zoom to entity'],
+              ['2× Click', 'Focus + Ask AI'],
+              ['Drag',     'Pin node position'],
+              ['R-click',  'Unpin node'],
+              ['F / R',    'Fit / Reheat'],
+              ['Esc',      'Clear focus'],
+            ] as [string, string][]).map(([key, label]) => {
+              const isPrimary = key === '2× Click';
+              return (
+                <li key={key} className="flex items-center gap-2.5 text-[10.5px] font-mono"
+                    style={{ color: COLORS.text }}>
+                  <kbd className="px-1.5 py-0.5 rounded text-[8.5px] font-bold min-w-[52px] text-center"
+                       style={{
+                         background: isPrimary ? rgb(COLORS.paper, 0.12) : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)'),
+                         border: `1px solid ${isPrimary ? rgb(COLORS.paper, 0.4) : COLORS.dimLink}`,
+                         color: isPrimary ? rgb(COLORS.paper, 1) : COLORS.textDim,
+                       }}>
+                    {key}
+                  </kbd>
+                  <span style={{ color: COLORS.textDim }}>{label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* ═══ BOTTOM-RIGHT: Mini Status Bar ═══ */}
+      <div className="absolute bottom-5 right-5 z-10 flex items-center gap-3 px-3.5 py-2 rounded-full"
+           style={panelStyle}>
+        <span className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: '#22c55e',
+                boxShadow: '0 0 8px rgba(34,197,94,0.7)',
+                animation: 'graphPulse 1.8s ease-in-out infinite',
+              }} />
+        <span className="text-[9.5px] font-mono font-black uppercase tracking-widest"
+              style={{ color: COLORS.textDim }}>
+          Live · {stats.total} nodes · {stats.links} edges
+        </span>
       </div>
     </div>
   );
